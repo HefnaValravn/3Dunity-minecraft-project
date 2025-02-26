@@ -389,6 +389,8 @@ GameObject:
   - component: {fileID: 429854421}
   - component: {fileID: 429854420}
   - component: {fileID: 429854419}
+  - component: {fileID: 429854424}
+  - component: {fileID: 429854423}
   m_Layer: 0
   m_Name: player
   m_TagString: Untagged
@@ -486,6 +488,33 @@ Transform:
   - {fileID: 330585546}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: -2.003, z: 0}
+--- !u!114 &429854423
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 429854418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 935be0016ff65ac6ea23570cf2b722a7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &429854424
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 429854418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e741851cba3ad425c91ecf922cc6b379, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _data:
+    _json: '{"declarations":{"Kind":"Object","collection":{"$content":[],"$version":"A"},"$version":"A"}}'
+    _objectReferences: []
 --- !u!1 &832575517
 GameObject:
   m_ObjectHideFlags: 0
