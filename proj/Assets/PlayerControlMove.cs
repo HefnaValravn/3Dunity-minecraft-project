@@ -13,6 +13,8 @@ public class scriptComponent : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (Input.GetKey(KeyCode.W)){
         transform.transform.Translate(new Vector3(0, 0, forwardSpeed * Time.deltaTime));
+        }
     }
 }
