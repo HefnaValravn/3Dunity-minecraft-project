@@ -688,6 +688,7 @@ MonoBehaviour:
   chunkCoordinate:
     x: 0
     y: 0
+  bedrockTexture: {fileID: 2800000, guid: 07fda4f01993213f9bb5ad1629544a4f, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
