@@ -22,13 +22,18 @@ public class Chunk : MonoBehaviour
     {
         blocks = new BlockType[32, 128, 32]; //this defines the size of the chunk (how many blocks in each direction)
 
-//IMPORTANT: WHATEVER DIMENSIONS YOU SET HERE HAVE TO MATCH THE DIMENSIONS IN THE GenerateMesh() FUNCTION
+        //IMPORTANT: WHATEVER DIMENSIONS YOU SET HERE HAVE TO MATCH THE DIMENSIONS IN THE GenerateMesh() FUNCTION
         // create a 20x20 grid of bedrock blocks at y = 0
-        for (int x = 0; x < 10; x++)
+        for (int x = 0; x < 32; x++)
         {
-            for (int z = 0; z < 10; z++)
+            for (int z = 0; z < 32; z++)
             {
-                blocks[x, 0, z] = BlockType.Bedrock; // Place Bedrock at various (x, z) positions at y = 50
+                int bedrockDepth = GetBedrockRandomDepth(); // Get a weighted random depth
+
+                for (int y = 0; y < bedrockDepth; y++) // Place bedrock up to this depth
+                {
+                    blocks[x, y, z] = BlockType.Bedrock;
+                }
             }
         }
     }
@@ -51,28 +56,39 @@ public class Chunk : MonoBehaviour
 
         int vertexOffset = 0;
 
-        //this is supposed to be a triple loop (for x, y and z) but for now I just want a flat surface of cubes, so x and z are enough
-        for (int x = 0; x < 10; x++)
+
+        for (int x = 0; x < 32; x++)
         {
             for (int y = 0; y < 128; y++)
             {
-                for (int z = 0; z < 10; z++)
+                for (int z = 0; z < 32; z++)
                 {
                     //optional logic to only generate mesh for a certain type of terrain
                     // 
-                    // if (blocks[x, y, z] == BlockType.Bedrock)
-                    // {
-                    // Add the block's mesh to the chunk's mesh
-                    AddBlockMesh(x, 0, z, verticesList, trianglesList, ref vertexOffset);
+                    if (blocks[x, y, z] == BlockType.Bedrock)
+                    {
+                        // Add the block's mesh to the chunk's mesh
+                        AddBlockMesh(x, y, z, verticesList, trianglesList, ref vertexOffset);
                     }
                 }
-        // }
+            }
         }
 
         mesh.vertices = verticesList.ToArray();
         mesh.triangles = trianglesList.ToArray();
         mesh.RecalculateNormals();
 
+    }
+
+
+    // Returns a weighted random bedrock depth. This makes it so the bedrock layer is most likely to be 2 cubes deep, but can also be 1 or 3 deep
+    private int GetBedrockRandomDepth()
+    {
+        float randomValue = UnityEngine.Random.value; // Generates a value between 0.0 and 1.0
+
+        if (randomValue < 0.2f) return 1; // 20% chance for 1 block deep
+        if (randomValue < 0.8f) return 2; // 60% chance for 2 blocks deep
+        return 3; // 20% chance for 3 blocks deep
     }
 
     private void SetPosition()
