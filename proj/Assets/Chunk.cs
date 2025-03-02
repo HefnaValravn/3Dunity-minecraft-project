@@ -40,22 +40,41 @@ public class Chunk : MonoBehaviour
 
     private void GenerateMesh()
     {
+
+        //add a meshFilter to the cube object
         meshFilter = gameObject.AddComponent<MeshFilter>();
+        //add a meshRendered to the cube object
         meshRenderer = gameObject.AddComponent<MeshRenderer>();
 
+        //get a material
+        Material mat = new Material(Shader.Find("Unlit/Texture"));
+        //get a texture
+        Texture2D texture = Resources.Load<Texture2D>("bedrock");
+        if (texture == null)
+        {
+            Debug.LogError("Failed to load bedrock texture!");
+        }
+        else
+        {
+            //assign the texture to the material
+            mat.mainTexture = texture;
+            Debug.Log("Texture applied successfully: " + mat.mainTexture.name);
+        }
 
-        Material mat = new Material(Shader.Find("Unlit/Color"));
-        mat.color = Color.black;
-        meshRenderer.material = mat;
-
+        //create a new mesh and assign it to the meshFilter
         mesh = new Mesh();
         meshFilter.mesh = mesh;
 
-        List<Vector3> verticesList = new List<Vector3>();
-        List<int> trianglesList = new List<int>();
+        //assign the material with the texture to the meshRenderer
+        meshRenderer.material = mat;
+
+        
+
+        List<Vector3> verticesList = new List<Vector3>(); //vertices on each block
+        List<int> trianglesList = new List<int>(); //triangles made with said vertices
+        List<Vector2> uvsList = new List<Vector2>(); // UVs for texture mapping
 
         int vertexOffset = 0;
-
 
         for (int x = 0; x < 32; x++)
         {
@@ -64,11 +83,10 @@ public class Chunk : MonoBehaviour
                 for (int z = 0; z < 32; z++)
                 {
                     //optional logic to only generate mesh for a certain type of terrain
-                    // 
                     if (blocks[x, y, z] == BlockType.Bedrock)
                     {
                         // Add the block's mesh to the chunk's mesh
-                        AddBlockMesh(x, y, z, verticesList, trianglesList, ref vertexOffset);
+                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset);
                     }
                 }
             }
@@ -76,10 +94,9 @@ public class Chunk : MonoBehaviour
 
         mesh.vertices = verticesList.ToArray();
         mesh.triangles = trianglesList.ToArray();
+        mesh.uv = uvsList.ToArray(); // Apply the UV coordinates
         mesh.RecalculateNormals();
-
     }
-
 
     // Returns a weighted random bedrock depth. This makes it so the bedrock layer is most likely to be 2 cubes deep, but can also be 1 or 3 deep
     private int GetBedrockRandomDepth()
@@ -97,8 +114,7 @@ public class Chunk : MonoBehaviour
         transform.position = new Vector3(chunkCoordinate.x * 32, chunkCoordinate.y * 128, 0);
     }
 
-
-    private void AddBlockMesh(int x, int y, int z, List<Vector3> verticesList, List<int> trianglesList, ref int vertexOffset)
+    private void AddBlockMesh(int x, int y, int z, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
     {
         //made it to accept positions, so I can render blocks anywhere with the same relative positions of each vertex
         Vector3[] vertices = new Vector3[]{ //this part is the equivalent of making a vertex buffer
@@ -115,35 +131,52 @@ public class Chunk : MonoBehaviour
             new Vector3(x + 1, y + 1, z + 1) //7, back top right
         };
 
-        //same concept as above; instead of using 0, 2, 1 to construct a triangle, you use the offset
-        int[] triangles = new int[]{ //and THIS is the equivalent of making an index buffer, which describes,
-                                     //given the vertex buffer, the coordinates of all the triangles to be drawn
-                                     //IMPORTANT, REMEMBER: CLOCKWISE MEANS SEEN, COUNTER-CLOCKWISE UNSEEN
-            //Front two triangles
-            //equal to 0, 2, 1, 0, 3, 2
-            vertexOffset, vertexOffset + 2, vertexOffset + 1, vertexOffset, vertexOffset + 3, vertexOffset + 2,
+        // Define UV coordinates for each vertex
+        // For a cube, we need to define UVs for each face separately
 
-            //Left triangles
-            vertexOffset + 5, vertexOffset + 3, vertexOffset, vertexOffset + 5, vertexOffset + 4, vertexOffset + 3,
+        // Front face
+        AddFaceWithUVs(vertices, new int[] { 0, 1, 2, 3 }, verticesList, trianglesList, uvsList, ref vertexOffset);
 
-            //Right triangles
-            vertexOffset + 1, vertexOffset + 7, vertexOffset + 6, vertexOffset + 1, vertexOffset + 2, vertexOffset + 7,
+        // Left face
+        AddFaceWithUVs(vertices, new int[] { 5, 0, 3, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset);
 
-            //Top triangles
-            vertexOffset + 3, vertexOffset + 7, vertexOffset + 2, vertexOffset + 3, vertexOffset + 4, vertexOffset + 7,
+        // Right face
+        AddFaceWithUVs(vertices, new int[] { 1, 6, 7, 2 }, verticesList, trianglesList, uvsList, ref vertexOffset);
 
-            //Bottom triangles
-            vertexOffset, vertexOffset + 6, vertexOffset + 5, vertexOffset, vertexOffset + 1, vertexOffset + 6,
+        // Top face
+        AddFaceWithUVs(vertices, new int[] { 3, 2, 7, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset);
 
-            //Back triangles
-            vertexOffset + 5, vertexOffset + 6, vertexOffset + 7, vertexOffset + 5, vertexOffset + 7, vertexOffset + 4
-        };
+        // Bottom face
+        AddFaceWithUVs(vertices, new int[] { 0, 5, 6, 1 }, verticesList, trianglesList, uvsList, ref vertexOffset);
 
-        verticesList.AddRange(vertices);
-        trianglesList.AddRange(triangles);
-
-        //increment offset by 8 blocks so you can place next block
-        vertexOffset += 8;
+        // Back face
+        AddFaceWithUVs(vertices, new int[] { 5, 4, 7, 6 }, verticesList, trianglesList, uvsList, ref vertexOffset);
     }
 
+    private void AddFaceWithUVs(Vector3[] cubeVertices, int[] faceIndices, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
+    {
+        // Add the 4 vertices for this face
+        for (int i = 0; i < 4; i++)
+        {
+            verticesList.Add(cubeVertices[faceIndices[i]]);
+        }
+
+        // Add UV coordinates for the 4 vertices (mapping a full texture to this face)
+        uvsList.Add(new Vector2(0, 0)); // Bottom left
+        uvsList.Add(new Vector2(1, 0)); // Bottom right
+        uvsList.Add(new Vector2(1, 1)); // Top right
+        uvsList.Add(new Vector2(0, 1)); // Top left
+
+        // Add two triangles to make a quad (face)
+        trianglesList.Add(vertexOffset);
+        trianglesList.Add(vertexOffset + 2);
+        trianglesList.Add(vertexOffset + 1);
+
+        trianglesList.Add(vertexOffset);
+        trianglesList.Add(vertexOffset + 3);
+        trianglesList.Add(vertexOffset + 2);
+
+        // Increment offset by 4 for the next face
+        vertexOffset += 4;
+    }
 }
