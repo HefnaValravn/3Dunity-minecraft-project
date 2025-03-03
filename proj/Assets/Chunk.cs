@@ -48,69 +48,64 @@ public class Chunk : MonoBehaviour
     }
 
     private void GenerateMesh()
+{
+    meshFilter = gameObject.AddComponent<MeshFilter>();
+    meshRenderer = gameObject.AddComponent<MeshRenderer>();
+
+    bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
+    stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
+
+    Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
+    Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
+
+    if (bedrockTexture == null || stoneTexture == null)
     {
-        //add a meshFilter to the cube object
-        meshFilter = gameObject.AddComponent<MeshFilter>();
-        //add a meshRenderer to the cube object
-        meshRenderer = gameObject.AddComponent<MeshRenderer>();
+        Debug.LogError("Failed to load textures!");
+    }
+    else
+    {
+        bedrockMaterial.mainTexture = bedrockTexture;
+        stoneMaterial.mainTexture = stoneTexture;
+    }
 
-        //create materials
-        bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
-        stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
+    mesh = new Mesh();
+    meshFilter.mesh = mesh;
 
-        //load textures
-        Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
-        Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
+    List<Vector3> verticesList = new List<Vector3>();
+    List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock & stone
+    List<int> trianglesStone = new List<int>();
+    List<Vector2> uvsList = new List<Vector2>();
 
-        if (bedrockTexture == null || stoneTexture == null)
+    int vertexOffset = 0;
+
+    for (int x = 0; x < 32; x++)
+    {
+        for (int y = 0; y < 128; y++)
         {
-            Debug.LogError("Failed to load textures!");
-        }
-        else
-        {
-            //assign textures to materials
-            bedrockMaterial.mainTexture = bedrockTexture;
-            stoneMaterial.mainTexture = stoneTexture;
-            Debug.Log("Bedrock texture applied successfully: " + bedrockTexture.name);
-            Debug.Log("Stone texture applied successfully: " + stoneTexture.name);
-        }
-
-        //create a new mesh and assign it to the meshFilter
-        mesh = new Mesh();
-        meshFilter.mesh = mesh;
-
-        List<Vector3> verticesList = new List<Vector3>(); //vertices on each block
-        List<int> trianglesList = new List<int>(); //triangles made with said vertices
-        List<Vector2> uvsList = new List<Vector2>(); // UVs for texture mapping
-
-        int vertexOffset = 0;
-
-        for (int x = 0; x < 32; x++)
-        {
-            for (int y = 0; y < 128; y++)
+            for (int z = 0; z < 32; z++)
             {
-                for (int z = 0; z < 32; z++)
+                if (blocks[x, y, z] == BlockType.Bedrock)
                 {
-                    //optional logic to only generate mesh for a certain type of terrain
-                    if (blocks[x, y, z] == BlockType.Bedrock)
-                    {
-                        // Add the block's mesh to the chunk's mesh
-                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset, bedrockMaterial);
-                    }
-                    else if (blocks[x, y, z] == BlockType.Stone)
-                    {
-                        // Add the block's mesh to the chunk's mesh
-                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset, stoneMaterial);
-                    }
+                    AddBlockMesh(x, y, z, verticesList, trianglesBedrock, uvsList, ref vertexOffset, bedrockMaterial);
+                }
+                else if (blocks[x, y, z] == BlockType.Stone)
+                {
+                    AddBlockMesh(x, y, z, verticesList, trianglesStone, uvsList, ref vertexOffset, stoneMaterial);
                 }
             }
         }
-
-        mesh.vertices = verticesList.ToArray();
-        mesh.triangles = trianglesList.ToArray();
-        mesh.uv = uvsList.ToArray(); // Apply the UV coordinates
-        mesh.RecalculateNormals();
     }
+
+    mesh.vertices = verticesList.ToArray();
+    mesh.subMeshCount = 2; // One submesh for bedrock, one for stone
+    mesh.SetTriangles(trianglesBedrock, 0);
+    mesh.SetTriangles(trianglesStone, 1);
+    mesh.uv = uvsList.ToArray();
+    mesh.RecalculateNormals();
+
+    meshRenderer.materials = new Material[] { bedrockMaterial, stoneMaterial };
+}
+
 
     // Returns a weighted random bedrock depth. This makes it so the bedrock layer is most likely to be 2 cubes deep, but can also be 1 or 3 deep
     private int GetBedrockRandomDepth()
