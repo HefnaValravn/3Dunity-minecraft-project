@@ -94,15 +94,13 @@ public class Chunk : MonoBehaviour
                     //optional logic to only generate mesh for a certain type of terrain
                     if (blocks[x, y, z] == BlockType.Bedrock)
                     {
-                        meshRenderer.material = bedrockMaterial;
                         // Add the block's mesh to the chunk's mesh
-                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset);
+                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset, bedrockMaterial);
                     }
                     else if (blocks[x, y, z] == BlockType.Stone)
                     {
-                        meshRenderer.material = stoneMaterial;
                         // Add the block's mesh to the chunk's mesh
-                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset);
+                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset, stoneMaterial);
                     }
                 }
             }
@@ -130,8 +128,11 @@ public class Chunk : MonoBehaviour
         transform.position = new Vector3(chunkCoordinate.x * 32, chunkCoordinate.y * 128, 0);
     }
 
-    private void AddBlockMesh(int x, int y, int z, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
+    private void AddBlockMesh(int x, int y, int z, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset, Material material)
     {
+
+        meshRenderer.material = material;
+
         //made it to accept positions, so I can render blocks anywhere with the same relative positions of each vertex
         Vector3[] vertices = new Vector3[]{ //this part is the equivalent of making a vertex buffer
             //this is equal to (0, 0, 0)
