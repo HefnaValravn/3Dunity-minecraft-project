@@ -11,6 +11,9 @@ public class Chunk : MonoBehaviour
     private MeshRenderer meshRenderer; //renders the mesh
     private Mesh mesh; //the mesh itself lol
 
+    private Material bedrockMaterial;
+    private Material stoneMaterial;
+
     private void Start()
     {
         InitializeChunk();
@@ -34,41 +37,47 @@ public class Chunk : MonoBehaviour
                 {
                     blocks[x, y, z] = BlockType.Bedrock;
                 }
+
+                // Place stone blocks above the bedrock layer
+                for (int y = bedrockDepth; y < bedrockDepth + 3; y++) // 3 layers of stone above bedrock
+                {
+                    blocks[x, y, z] = BlockType.Stone;
+                }
             }
         }
     }
 
     private void GenerateMesh()
     {
-
         //add a meshFilter to the cube object
         meshFilter = gameObject.AddComponent<MeshFilter>();
-        //add a meshRendered to the cube object
+        //add a meshRenderer to the cube object
         meshRenderer = gameObject.AddComponent<MeshRenderer>();
 
-        //get a material
-        Material mat = new Material(Shader.Find("Unlit/Texture"));
-        //get a texture
-        Texture2D texture = Resources.Load<Texture2D>("bedrock");
-        if (texture == null)
+        //create materials
+        bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
+        stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
+
+        //load textures
+        Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
+        Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
+
+        if (bedrockTexture == null || stoneTexture == null)
         {
-            Debug.LogError("Failed to load bedrock texture!");
+            Debug.LogError("Failed to load textures!");
         }
         else
         {
-            //assign the texture to the material
-            mat.mainTexture = texture;
-            Debug.Log("Texture applied successfully: " + mat.mainTexture.name);
+            //assign textures to materials
+            bedrockMaterial.mainTexture = bedrockTexture;
+            stoneMaterial.mainTexture = stoneTexture;
+            Debug.Log("Bedrock texture applied successfully: " + bedrockTexture.name);
+            Debug.Log("Stone texture applied successfully: " + stoneTexture.name);
         }
 
         //create a new mesh and assign it to the meshFilter
         mesh = new Mesh();
         meshFilter.mesh = mesh;
-
-        //assign the material with the texture to the meshRenderer
-        meshRenderer.material = mat;
-
-        
 
         List<Vector3> verticesList = new List<Vector3>(); //vertices on each block
         List<int> trianglesList = new List<int>(); //triangles made with said vertices
@@ -85,6 +94,13 @@ public class Chunk : MonoBehaviour
                     //optional logic to only generate mesh for a certain type of terrain
                     if (blocks[x, y, z] == BlockType.Bedrock)
                     {
+                        meshRenderer.material = bedrockMaterial;
+                        // Add the block's mesh to the chunk's mesh
+                        AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset);
+                    }
+                    else if (blocks[x, y, z] == BlockType.Stone)
+                    {
+                        meshRenderer.material = stoneMaterial;
                         // Add the block's mesh to the chunk's mesh
                         AddBlockMesh(x, y, z, verticesList, trianglesList, uvsList, ref vertexOffset);
                     }
