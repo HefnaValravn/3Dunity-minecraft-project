@@ -547,6 +547,7 @@ GameObject:
   - component: {fileID: 429854419}
   - component: {fileID: 429854424}
   - component: {fileID: 429854425}
+  - component: {fileID: 429854426}
   m_Layer: 0
   m_Name: head
   m_TagString: Untagged
@@ -673,6 +674,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   mouseSensitivity: 1
+--- !u!114 &429854426
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 429854418}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac673b10e009f704ab4780794f3c179, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  headTexture: {fileID: 2800000, guid: aad236560fb77a221a5fa44e78f33e43, type: 3}
+  headTransform: {fileID: 429854422}
 --- !u!1 &751518725
 GameObject:
   m_ObjectHideFlags: 0
@@ -1039,8 +1054,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 707eb0e553f0d15478ad214872d26528, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  mouseSensitivity: 50
-  head: {fileID: 1005221236}
+  player: {fileID: 0}
+  distance: 5
+  xSpeed: 120
+  ySpeed: 120
+  yMinLimit: -20
+  yMaxLimit: 80
 --- !u!1 &1464379399
 GameObject:
   m_ObjectHideFlags: 0
