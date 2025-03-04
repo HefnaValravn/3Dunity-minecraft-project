@@ -2,40 +2,63 @@ using UnityEngine;
 
 public class FrontCameraLook : MonoBehaviour
 {
-    [SerializeField] private float mouseSensitivity = 50f;
-    public Transform player; // The player object
-    public float distanceFromPlayer = 3f;
+    public Transform player; // Reference to the player's transform
+    public float distance = 5.0f; // Distance from the player
+    public float xSpeed = 120.0f; // Speed of the camera rotation around the player
+    public float ySpeed = 120.0f; // Speed of the camera rotation around the player
+    public float yMinLimit = -20f; // Minimum vertical angle (how far you can look)
+    public float yMaxLimit = 80f; // Maximum vertical angle (how far you can look, but the other direction)
 
-    private float xRotation = 0f; // Pitch (up/down)
-    private float yRotation = 0f; // Yaw (left/right)
+    private float xRotation = 0.0f;
+    private float y = 0.0f;
 
     void Start()
     {
-        Cursor.lockState = CursorLockMode.Locked;
+        Vector3 angles = transform.eulerAngles;
+        xRotation = angles.y;
+        y = angles.x;
+
+        // Make the rigid body not change rotation
+        if (GetComponent<Rigidbody>())
+        {
+            GetComponent<Rigidbody>().freezeRotation = true;
+        }
     }
 
-    void Update()
+    void LateUpdate()
     {
-        // Get mouse input
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+        if (player)
+        {
+            // Update the xRotation based on the mouse's X movement, speed, and distance
+            xRotation += Input.GetAxis("Mouse X") * xSpeed * distance * 0.02f;
+            // Update the y rotation based on the mouse's Y movement and speed
+            y -= Input.GetAxis("Mouse Y") * ySpeed * 0.02f;
 
-        // Update rotation values
-        xRotation += mouseY;
-        xRotation = Mathf.Clamp(xRotation, -30f, 45f); // Prevent extreme looking up/down
-        yRotation += mouseX;
+            // Clamp the y rotation to stay within the specified vertical limits
+            y = ClampAngle(y, yMinLimit, yMaxLimit);
 
-        // Set the camera's position around the player
-        Vector3 direction = new Vector3(0, 0, -distanceFromPlayer);
-        Quaternion rotation = Quaternion.Euler(xRotation, yRotation + 180f, 0f);
+            // Create a rotation quaternion based on the updated y and xRotation values
+            Quaternion rotation = Quaternion.Euler(y, xRotation, 0);
 
-        transform.position = player.position + rotation * direction;
-        transform.LookAt(player.position); // Look at the player's center
+            // Calculate the new position of the camera based on the rotation and distance from the player
+            Vector3 position = rotation * new Vector3(0.0f, 0.0f, -distance) + player.position;
 
-        // Rotate player *only horizontally* (yaw), keeping movement flat
-        player.rotation = Quaternion.Euler(0f, yRotation, 0f);
+            // Apply the rotation and position to the camera
+            transform.rotation = rotation;
+            transform.position = position;
 
-        // Apply vertical rotation *only for visuals*, not movement
-        player.localRotation = Quaternion.Euler(-xRotation, yRotation, 0f);
+            player.rotation = Quaternion.Euler(0, xRotation, 0); // Rotate the player to face the camera direction
+        }
+    }
+
+    static float ClampAngle(float angle, float min, float max)
+    //make angle stay within 1 full rotation (360º)
+    {
+        if (angle < -360F)
+            angle += 360F;
+        if (angle > 360F)
+            angle -= 360F;
+    //...then clamp it before returning
+        return Mathf.Clamp(angle, min, max);
     }
 }

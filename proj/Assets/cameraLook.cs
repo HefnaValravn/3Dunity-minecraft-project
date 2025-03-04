@@ -1,27 +1,32 @@
+// CameraLook.cs - Attach to the head object
 using UnityEngine;
+using UnityEngine.InputSystem;
 
-public class cameraLook : MonoBehaviour
+public class CameraLook : MonoBehaviour
 {
-    [SerializeField] private float mouseSensitivity = 50f;
-    public Transform player;
-
+    [SerializeField] private float mouseSensitivity = 1f;
     private float xRotation = 0f;
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
+    private float yRotation = 0f;
+
     void Start()
     {
         Cursor.lockState = CursorLockMode.Locked;
     }
 
-    // Update is called once per frame
     void Update()
     {
-        float mouseX = Input.GetAxis("Mouse X") * mouseSensitivity * Time.deltaTime;
-        float mouseY = Input.GetAxis("Mouse Y") * mouseSensitivity * Time.deltaTime;
+        if (Mouse.current == null) return;
 
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -90f, 90f); //this prevents looking too far up and down
+        // Read mouse movement, adapted to use time so it's standardized independently of the amount of frames
+        Vector2 mouseDelta = Mouse.current.delta.ReadValue() * mouseSensitivity * Time.deltaTime;
 
-        transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
-        player.Rotate(Vector3.up * mouseX);
+        // Handle both vertical and horizontal rotation on the head
+        xRotation -= mouseDelta.y;
+        yRotation += mouseDelta.x;
+        //prevent looking up or down too much
+        xRotation = Mathf.Clamp(xRotation, -90f, 90f);
+
+        // Apply both rotations to the head
+        transform.localRotation = Quaternion.Euler(xRotation, yRotation, 0f);
     }
 }
