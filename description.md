@@ -158,7 +158,79 @@ Once you've fixed your bug, commit and push.
 
 ### Add a second camera
 
-// TODO 
+You're going to add a 3rd person camera next. A 3rd person camera keeps the character in view at all times. You're going to implement as an *"orbit camera"*, which moves around on a sphere surrounding the subject, always keeping the same distance when orbiting while facing the character. 
+
+![](./description_images/orbit.png)
+
+In the above image, we see how it works in one dimension (when we move the mouse left to right). It shows that the camera moves in a circle, rotating so it's keeps the stickman in view. 
+
+Below, we see that we have two such circles : 
+* the camera moves left to right on the blue track when the mouse goes left to right
+* the camera moves left to right on the blue track when the mouse goes left to right
+* the camera moves up and down on the red track when the mouse goes up and down
+
+![](./description_images/orbit2.gif)
+
+Moving in a circle can be a bit tricky, but remember what `cos` and 'sin' do: they give us the x and y coordinate of a point on a circle with radius 1 ( radius = half the diameter).
+
+In the next image, the coordinates of (x, y) are (cos(t,sin(t)).
+
+![](./description_images/sincos.jpg)
+
+Ok, take a breather :) We can start implementing now. I recommend you start with implementing left and right
+
+* In unity, add a second camera to the scene (think about what you want it to move relative to, so you can add it in the right place in the hierarchy)
+* In script, add a way to switch between the two camera's when the `c` key is pressed
+* Store the angle `t` in script for your new camera
+* Increase / decrease the angle when the mouse is move left and right
+* Make sure you make the speed is configurable and frame-rate independent, like you did for translation
+* From the angle, calculate new X and Z (why not Y? Remember Unity's coordinate system) coordinates
+* Add a new configurable distance value. Your new x and y coordinate are 1 removed from the circle center, so you have to multiply with the distance value
+* Rotate the camera to look at the character. You can have a look at [Transform.LookAt](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Transform.LookAt.html)
+
+That 'should' work. Try it out, and try to break it. All good? Commit and push, then continue....
+
+* Add up and down movement in the same way you did left/right
+* Add changing the distance from the camera to the character using scroll wheel. 
+
+
+Commit, push, and give yourself a pat on the on back. It might not seem like much, but you've gotten some translation and rotation under your belt, and you have a couple of things that work. Now, on to the main event. Or a detour, whichever you choose
+
+## Bonus chapter
+
+This chapter will not be graded (you won't get points for it), nor will any other chapters that start with 'Bonus'. If you do have the time, I encourage them you give them a try. Practice makes perfect.
+
+### Controller input
+
+If you have a controller, it's not too hard to add support. Try not to check both keyboard and gamepad, there are abstractions. Check [Unity's input documentation](https://docs.unity3d.com/Packages/com.unity.inputsystem@1.13/manual/index.html).
+
+To be honest, it's not too interesting to figure out input, the fun part here is having an input device that makes for less awkward navigation in 3d.
+
+### Make a proper character
+
+Our cube is a bit underwhelming as a character. In a real game, we would get a 3D model from artists to use, but we don't have an artist :( So, we'll make programmer art: something ugly which is in reach.
+
+Using cubes, build a character with legs, arms, a body, and a head. You can add more cubes for aesthetic reasons. Just make sure you set up a correct hierarchy, so it doesn't fall apart under translations/rotation. I usually make everything a child of the torso.
+
+Now comes the fun, tricky bit. Try animating the legs and arms to swing back and forth. To get them to swing from the 'joint' (shoulder or hip), you have a problem. This is what you want:
+
+![](./description_images/02_08_correct_pivot.png)
+
+ If you naively rotate a leg, it will rotate around the center instead. 
+
+![](./description_images/02_07_wrong_pivot.png)
+
+The part the object rotates around is called the 'pivot'. If it's confusing, think about how a door opens. The metal parts connecting the door to the wall (hinges) is the pivot, it doesn't need to be in the center of the object.
+
+Now, the solution. Only one thing ever worked for me in Unity is creating a 'ghost' `GameObject`, one that doesn't have anything visible, and put it between the limb and the body. You should move your limb so that it's center is not in the centre of the empty `GameObject`. Then, when you rotate that empty `GameObject`, the limb should rotate off-center.
+
+![](./description_images/02_09_empty_object_pivot.png)
+
+As to the movement itself, it looks good when the limbs move like a pendulum. A pendulum moves back and forth smoothly. Two functions that moves back and forth smoothly is `sin` and `cos` (they're the same shape). Sin looks like this:
+
+![](./description_images/sin.png)
+
+You can take `sin(time)` and you will get a value that moves up and down smoothly. You can directly plug it into a rotation to get it to go back and forth.
 
 ## Minecraft terrain 
 
@@ -167,6 +239,8 @@ Once you've fixed your bug, commit and push.
 Minecraft terrain is composed of a grid of chunks. Each `Chunk` is a 3D grid of blocks. A `block` is of a certain material. We will need to implement all of these, but there's a logical sequence where we have a lot of intermediate results that we can check for correctness.
 
 ### Block 
+
+![](./description_images/block.png)
 
 In minecraft, a block is a cube that is of a certain material (stone, dirt,...). In our implementation
 
@@ -177,6 +251,8 @@ In minecraft, a block is a cube that is of a certain material (stone, dirt,...).
 Luckily, we don't have to do anything to enforce these, as all of our boxes will be managed by a larger structure, the `Chunk`, which will take care of their placement and rendering.
 
 ### Chunk
+
+![](./description_images/chunk.png)
 
 A `Chunk` in minecraft is a collection of blocks. The entire world of minecraft is a 2D grid of chunks. A `Chunk` always has the same dimensions, eg 32x128x32 (in units, but 1 unit == 1 block, so also in amount of blocks). 
 
@@ -205,7 +281,7 @@ Now, let's finally get to rendering. We'll start by rendering a block.
 * First, we need some test data. Set the block at [0,0,0] to type `Bedrock`. Leave the rest as `Empty`.
 * We need also need a GameObject, Mesh, MeshFilter and Material. The easiest way is to add a GameObject with a Prefab, such as a Cube, and overwrite the Mesh with your new one
 * Last we need material to visualize bedrock. For now, use the default material, and set it's color to black.
-* Start by making a triangle. Check lab 7 for the code you need to to make the mesh. The points of the triangle should be (0,0,0), (1, 0, 0), and (0, 0, 1).
+* Start by making a triangle. Check lab 3 for the code you need to to make the mesh. The points of the triangle should be (0,0,0), (1, 0, 0), and (0, 0, 1).
 * Extend the triangle with a second triangle to create a square. The fourth position should be (1, 0, 1).
 * Extend that to make a box. A box is 6 squares in 6 directions: top, bottom, left, right. The coordinates of the vertices are either 0 or 1. 
 * Use [Mesh.RecalculateNormals](https://docs.unity3d.com/ScriptReference/Mesh.RecalculateNormals.html) to automagically generate normals for your box. !!! These are not the final normals, we will make better ones later!!!!
@@ -236,7 +312,7 @@ Great! We now can generate some geometry for our chunk. Let's generate some data
 
 Bedrock in minecraft is the lowest level of blocks. They're indestructible so the player can't see beyond the world.
 
-* Create a method for your chunk called `generatechunk`.
+* Create a method for your chunk called `generateChunk`.
 * This method will fill all the blocks in your `Chunk` right before you create the Mesh.
 * For bedrock, we're going to fill the bottom layers of our chunk with bedrock block. The layer should be at least one thick (where y == 0 should be all bedrock), but bedrock can go up to 3 layers. Get a good mix of how high the bedrock goes, you can use `Random.Range` to determine the height of the bedrock.
 
@@ -252,7 +328,7 @@ Start by adding a one block deep layer of stone on top of the bedrock. Checking 
 
 Check your results. You should see a single layer of stone on top of your bedrock.
 
-If that's work, we can get to the interesting part. 
+If that works, we can get to the interesting part. 
 
 Change the generation of the stone layer to be plausible (looks like something realistic).
 * Create a function that takes a world coordinate in XY (this is the coordinate of the column where we want to determine how high the stone layer goes). It will return the height of the stone layer as a single float, in world space
@@ -327,4 +403,7 @@ Take a note of the speedup you get. Optimization can be quite motivating when yo
 
 ## Version list
 
+0.0.4 Images and typo fixes for chunk generation
+0.0.3 Add first bonus chapter
+0.0.2 Add 3rd person camera
 0.0.1 Initial versions
