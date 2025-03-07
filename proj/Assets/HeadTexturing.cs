@@ -11,6 +11,7 @@ public class HeadTexturing : MonoBehaviour
         if (headTransform != null)
         {
             // Get the MeshRenderer component of the head
+            //this also means this script uses whatever material is assigned to the MeshRenderer component of the head child within Unity!!!!!
             MeshRenderer headRenderer = headTransform.GetComponent<MeshRenderer>();
 
             if (headRenderer != null)
