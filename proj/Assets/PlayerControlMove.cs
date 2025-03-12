@@ -24,7 +24,7 @@ public class PlayerMovement : MonoBehaviour
         if (Keyboard.current.sKey.isPressed) moveZ = -1f; // Backward
         if (Keyboard.current.aKey.isPressed) moveX = -1f; // Left
         if (Keyboard.current.dKey.isPressed) moveX = 1f;  // Right
-        
+
         // Get movement direction based on head's forward direction
         Vector3 forward = headTransform.forward;
         Vector3 right = headTransform.right;

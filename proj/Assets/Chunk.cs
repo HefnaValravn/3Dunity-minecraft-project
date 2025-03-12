@@ -13,6 +13,7 @@ public class Chunk : MonoBehaviour
 
     private Material bedrockMaterial;
     private Material stoneMaterial;
+    private Material dirtMaterial;
 
     private void Start()
     {
@@ -43,6 +44,11 @@ public class Chunk : MonoBehaviour
                 {
                     blocks[x, y, z] = BlockType.Stone;
                 }
+
+                for (int y = bedrockDepth + 10; y < bedrockDepth + 15; y++)
+                {
+                    blocks[x, y, z] = BlockType.Dirt;
+                }
             }
         }
     }
@@ -54,6 +60,7 @@ public class Chunk : MonoBehaviour
 
         bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
         stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
+        dirtMaterial = new Material(Shader.Find("Unlit/Color"));
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
@@ -68,12 +75,16 @@ public class Chunk : MonoBehaviour
             stoneMaterial.mainTexture = stoneTexture;
         }
 
+        //set color for dirt manually
+        dirtMaterial.color = new Color(0.5f, 0.3f, 0.1f);//brown
+
         mesh = new Mesh();
         meshFilter.mesh = mesh;
 
         List<Vector3> verticesList = new List<Vector3>();
         List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock & stone
         List<int> trianglesStone = new List<int>();
+        List<int> trianglesDirt = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
 
         int vertexOffset = 0;
@@ -92,19 +103,24 @@ public class Chunk : MonoBehaviour
                     {
                         AddBlockMesh(x, y, z, verticesList, trianglesStone, uvsList, ref vertexOffset);
                     }
+                    else if (blocks[x, y, z] == BlockType.Dirt)
+                    {
+                        AddBlockMesh(x, y, z, verticesList, trianglesDirt, uvsList, ref vertexOffset);
+                    }
                 }
             }
         }
 
         mesh.vertices = verticesList.ToArray();
-        mesh.subMeshCount = 2; // One submesh for bedrock, one for stone
+        mesh.subMeshCount = 3; // One submesh for bedrock, one for stone, one for dirt
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
+        mesh.SetTriangles(trianglesDirt.ToArray(), 2);
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 
-        // Assign both materials to the renderer
-        Material[] materials = new Material[2] { bedrockMaterial, stoneMaterial };
+        // Assign all materials to the renderer
+        Material[] materials = new Material[3] { bedrockMaterial, stoneMaterial, dirtMaterial };
         meshRenderer.materials = materials;
     }
 
@@ -144,12 +160,12 @@ public class Chunk : MonoBehaviour
         };
 
         // Check if block has neighbors and only add faces when needed
-        bool hasFrontNeighbor = (z > 0 && IsBlockSolid(x, y, z - 1));
-        bool hasBackNeighbor = (z < 31 && IsBlockSolid(x, y, z + 1));
-        bool hasLeftNeighbor = (x > 0 && IsBlockSolid(x - 1, y, z));
-        bool hasRightNeighbor = (x < 31 && IsBlockSolid(x + 1, y, z));
-        bool hasTopNeighbor = (y < 127 && IsBlockSolid(x, y + 1, z));
-        bool hasBottomNeighbor = (y > 0 && IsBlockSolid(x, y - 1, z));
+        bool hasFrontNeighbor = z > 0 && IsBlockSolid(x, y, z - 1);
+        bool hasBackNeighbor = z < 31 && IsBlockSolid(x, y, z + 1);
+        bool hasLeftNeighbor = x > 0 && IsBlockSolid(x - 1, y, z);
+        bool hasRightNeighbor = x < 31 && IsBlockSolid(x + 1, y, z);
+        bool hasTopNeighbor = y < 127 && IsBlockSolid(x, y + 1, z);
+        bool hasBottomNeighbor = y > 0 && IsBlockSolid(x, y - 1, z);
 
         // Only add faces that are visible (not covered by other blocks)
         if (!hasFrontNeighbor)
@@ -174,7 +190,7 @@ public class Chunk : MonoBehaviour
     private bool IsBlockSolid(int x, int y, int z)
     {
         // Check if this block position contains a solid block (either bedrock or stone)
-        return blocks[x, y, z] == BlockType.Bedrock || blocks[x, y, z] == BlockType.Stone;
+        return blocks[x, y, z] == BlockType.Bedrock || blocks[x, y, z] == BlockType.Stone || blocks[x, y, z] == BlockType.Dirt;
     }
 
     private void AddFaceWithUVs(Vector3[] cubeVertices, int[] faceIndices, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
