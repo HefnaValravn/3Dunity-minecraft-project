@@ -60,12 +60,13 @@ public class Chunk : MonoBehaviour
 
         bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
         stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
-        dirtMaterial = new Material(Shader.Find("Unlit/Color"));
+        dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
+        Texture2D dirtTexture = Resources.Load<Texture2D>("dirt");
 
-        if (bedrockTexture == null || stoneTexture == null)
+        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null)
         {
             Debug.LogError("Failed to load textures!");
         }
@@ -73,16 +74,15 @@ public class Chunk : MonoBehaviour
         {
             bedrockMaterial.mainTexture = bedrockTexture;
             stoneMaterial.mainTexture = stoneTexture;
+            dirtMaterial.mainTexture = dirtTexture;
         }
 
-        //set color for dirt manually
-        dirtMaterial.color = new Color(0.5f, 0.3f, 0.1f);//brown
 
         mesh = new Mesh();
         meshFilter.mesh = mesh;
 
         List<Vector3> verticesList = new List<Vector3>();
-        List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock & stone
+        List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock, stone & dirt
         List<int> trianglesStone = new List<int>();
         List<int> trianglesDirt = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
@@ -115,7 +115,7 @@ public class Chunk : MonoBehaviour
         mesh.subMeshCount = 3; // One submesh for bedrock, one for stone, one for dirt
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
-        mesh.SetTriangles(trianglesDirt.ToArray(), 2);
+        mesh.SetTriangles(trianglesDirt.ToArray(), 2);    // Third for dirt
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 

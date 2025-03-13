@@ -688,6 +688,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   headTexture: {fileID: 2800000, guid: aad236560fb77a221a5fa44e78f33e43, type: 3}
   headTransform: {fileID: 429854422}
+  brightnessMultiplier: 1.5
 --- !u!1 &751518725
 GameObject:
   m_ObjectHideFlags: 0
@@ -841,7 +842,7 @@ GameObject:
   - component: {fileID: 1372197569}
   m_Layer: 0
   m_Name: player
-  m_TagString: Untagged
+  m_TagString: Player
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -854,15 +855,15 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1372197567}
   serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -1.4439905, y: -3.325, z: -12.53}
+  m_LocalRotation: {x: -0, y: -0.33557016, z: -0, w: 0.9420153}
+  m_LocalPosition: {x: 4.5128317, y: 12.88, z: -13.801046}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 429854422}
   - {fileID: 1005221236}
   m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: -39.214, z: 0}
 --- !u!114 &1372197569
 MonoBehaviour:
   m_ObjectHideFlags: 0
