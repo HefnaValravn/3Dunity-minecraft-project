@@ -22,9 +22,15 @@ public class Chunk : MonoBehaviour
         GenerateMesh();
     }
 
-    private void InitializeChunk()
+    public void InitializeChunk()
     {
-        blocks = new BlockType[32, 128, 32]; //this defines the size of the chunk (how many blocks in each direction)
+        blocks = new BlockType[32, 128, 32]; // This defines the size of the chunk
+
+        float noiseScale = 0.025f; // Controls terrain roughness
+        int octaves = 4; // Number of Perlin noise layers
+        float persistence = 0.5f; // Controls terrain variation
+        float lacunarity = 2.0f; // Frequency multiplier per octave
+
 
         //IMPORTANT: WHATEVER DIMENSIONS YOU SET HERE HAVE TO MATCH THE DIMENSIONS IN THE GenerateMesh() FUNCTION
         // create a 32x32 grid of bedrock blocks at y = 0
@@ -32,26 +38,59 @@ public class Chunk : MonoBehaviour
         {
             for (int z = 0; z < 32; z++)
             {
-                int bedrockDepth = GetBedrockRandomDepth(); // Get a weighted random depth
 
-                for (int y = 0; y < bedrockDepth; y++) // Place bedrock up to this depth
-                {
-                    blocks[x, y, z] = BlockType.Bedrock;
-                }
+                float noiseX = x + chunkCoordinate.x * 32;
+                float noiseZ = z + chunkCoordinate.y * 32;
+                // Get bedrock depth using the same weighted random function
+                int bedrockDepth = GetBedrockRandomDepth();
 
-                // Place stone blocks above the bedrock layer
-                for (int y = bedrockDepth; y < bedrockDepth + 10; y++) // 3 layers of stone above bedrock
-                {
-                    blocks[x, y, z] = BlockType.Stone;
-                }
+                // Generate terrain height using fBm Perlin noise
+                float height = GeneratefBm(noiseX, noiseZ, noiseScale, octaves, persistence, lacunarity);
+                int terrainHeight = Mathf.FloorToInt(height * 30) + 50; // Scale & offset height
 
-                for (int y = bedrockDepth + 10; y < bedrockDepth + 15; y++)
+                // Ensure terrain doesn't go out of bounds
+                terrainHeight = Mathf.Clamp(terrainHeight, bedrockDepth + 1, 127);
+
+                for (int y = 0; y < terrainHeight; y++)
                 {
-                    blocks[x, y, z] = BlockType.Dirt;
+                    if (y < bedrockDepth)
+                    {
+                        blocks[x, y, z] = BlockType.Bedrock; // Place bedrock based on weighted depth
+                    }
+                    else if (y < terrainHeight - 5)
+                    {
+                        blocks[x, y, z] = BlockType.Stone; // Stone layer underground
+                    }
+                    else if (y < terrainHeight - 1)
+                    {
+                        blocks[x, y, z] = BlockType.Dirt; // Dirt near the surface
+                    }
                 }
             }
         }
     }
+
+
+    // fBm function for smooth terrain variation
+    private float GeneratefBm(float x, float z, float scale, int octaves, float persistence, float lacunarity)
+    {
+        float total = 0;
+        float frequency = scale;
+        float amplitude = 1;
+        float maxValue = 0;
+
+        for (int i = 0; i < octaves; i++)
+        {
+            total += Mathf.PerlinNoise(x * frequency, z * frequency) * amplitude;
+            maxValue += amplitude;
+
+            amplitude *= persistence; // Reduce amplitude each octave
+            frequency *= lacunarity; // Increase frequency each octave
+        }
+
+        return total / maxValue; // Normalize to 0-1 range
+    }
+
 
     private void GenerateMesh()
     {
@@ -123,6 +162,9 @@ public class Chunk : MonoBehaviour
         Material[] materials = new Material[3] { bedrockMaterial, stoneMaterial, dirtMaterial };
         meshRenderer.materials = materials;
     }
+
+
+
 
     // Returns a weighted random bedrock depth. This makes it so the bedrock layer is most likely to be 2 cubes deep, but can also be 1 or 3 deep
     private int GetBedrockRandomDepth()
