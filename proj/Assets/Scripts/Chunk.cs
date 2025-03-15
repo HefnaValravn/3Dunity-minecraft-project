@@ -117,8 +117,8 @@ public class Chunk : MonoBehaviour
         Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
         Texture2D dirtTexture = Resources.Load<Texture2D>("dirt");
-        Texture2D grassSideTexture = Resources.Load<Texture2D>("grassside");
-        Texture2D grassTopTexture = Resources.Load<Texture2D>("grasstop");
+        Texture2D grassSideTexture = Resources.Load<Texture2D>("gud_grass_side");
+        Texture2D grassTopTexture = Resources.Load<Texture2D>("gud_grass_top");
 
         if (bedrockTexture == null || stoneTexture == null || dirtTexture == null | grassSideTexture == null || grassTopTexture == null)
         {
