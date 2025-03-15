@@ -88,8 +88,19 @@ public class Chunk : MonoBehaviour
 
     public void GenerateMesh()
     {
-        meshFilter = gameObject.AddComponent<MeshFilter>();
-        meshRenderer = gameObject.AddComponent<MeshRenderer>();
+        // Only generate mesh if we have blocks initialized
+        if (blocks == null)
+        {
+            Debug.LogError("Cannot generate mesh - blocks not initialized!");
+            return;
+        }
+
+        // Add components if they don't exist
+        if (meshFilter == null)
+            meshFilter = gameObject.AddComponent<MeshFilter>();
+
+        if (meshRenderer == null)
+            meshRenderer = gameObject.AddComponent<MeshRenderer>();
 
         bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
         stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
