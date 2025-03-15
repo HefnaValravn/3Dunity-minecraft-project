@@ -1,18 +1,22 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
+using System.Linq;
 
 public class ChunkManager : MonoBehaviour
 {
     public Transform player;
-    public int viewDistance = 5; // Number of chunks visible around the player (2 means a 5x5 grid)
+    public Camera playerCamera;
+    public int viewDistance = 10; // Number of chunks visible around the player (2 means a 5x5 grid)
     //this is because there are 2 to the player's left side, 2 to the right side, and the one the player is on
     //which makes a 5x5 grid when viewDistance = 2, or a 7x7 grid when viewDistance = 3
     //or a 11x11 grid if viewDistance = 5
+    public bool prioritizeViewDirection = true; //prioritize rendering chunks within view
     private Dictionary<int2, Chunk> activeChunks = new Dictionary<int2, Chunk>();
     private Queue<Chunk> chunkPool = new Queue<Chunk>(); // Stores reusable chunks
 
     private int chunkSize = 32;
+    private List<int2> prioritizedChunks = new List<int2>(); //direction based loading
 
     void Start()
     {
@@ -29,12 +33,29 @@ public class ChunkManager : MonoBehaviour
         int2 playerChunkCoord = GetChunkCoord(player.position);
         HashSet<int2> requiredChunks = GetRequiredChunks(playerChunkCoord);
 
-        // Reuse or create new chunks if necessary
-        foreach (int2 coord in requiredChunks)
+
+
+        if (prioritizeViewDirection)
         {
-            if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+            PrioritizeChunksByViewDirection(requiredChunks);
+            // Process the prioritized chunks
+            foreach (int2 coord in prioritizedChunks)
             {
-                LoadChunk(coord);
+                if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+                {
+                    LoadChunk(coord);
+                }
+            }
+        }
+        else
+        {
+            // Reuse or create new chunks if necessary
+            foreach (int2 coord in requiredChunks)
+            {
+                if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+                {
+                    LoadChunk(coord);
+                }
             }
         }
 
@@ -54,6 +75,43 @@ public class ChunkManager : MonoBehaviour
             UnloadChunk(coord);
         }
     }
+
+
+    private void PrioritizeChunksByViewDirection(HashSet<int2> requiredChunks)
+    {
+         // Clear the previous prioritized list
+        prioritizedChunks.Clear();
+        
+        // Add all required chunks to the prioritized list
+        prioritizedChunks.AddRange(requiredChunks);
+        
+        // Get view direction as a 2D vector (xz plane)
+        Vector3 viewDir = playerCamera.transform.forward;
+        Vector2 viewDir2D = new Vector2(viewDir.x, viewDir.z).normalized;
+        
+        // Get player position
+        Vector3 playerPos = player.position;
+        
+        // Sort chunks by relevance to the player's view direction
+        prioritizedChunks.Sort((a, b) => {
+            // Calculate center positions of chunks
+            Vector2 aCenter = new Vector2((a.x * chunkSize) + (chunkSize/2), (a.y * chunkSize) + (chunkSize/2));
+            Vector2 bCenter = new Vector2((b.x * chunkSize) + (chunkSize/2), (b.y * chunkSize) + (chunkSize/2));
+            
+            // Calculate direction vectors from player to chunk centers
+            Vector2 aDir = new Vector2(aCenter.x - playerPos.x, aCenter.y - playerPos.z).normalized;
+            Vector2 bDir = new Vector2(bCenter.x - playerPos.x, bCenter.y - playerPos.z).normalized;
+            
+            // Calculate dot product to determine alignment with view direction
+            float aDot = Vector2.Dot(viewDir2D, aDir);
+            float bDot = Vector2.Dot(viewDir2D, bDir);
+            
+            // Sort by dot product (higher means more aligned with view direction)
+            return bDot.CompareTo(aDot);
+        });
+    }
+
+
 
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {

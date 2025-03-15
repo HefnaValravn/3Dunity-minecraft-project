@@ -859,7 +859,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1372197568}
-  viewDistance: 2
+  playerCamera: {fileID: 330585545}
+  viewDistance: 10
+  prioritizeViewDirection: 1
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0
