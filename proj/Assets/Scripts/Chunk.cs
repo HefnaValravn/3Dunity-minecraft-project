@@ -2,10 +2,22 @@ using Unity.Mathematics;
 using UnityEngine;
 using System.Collections.Generic;
 
+
 public class Chunk : MonoBehaviour
 {
     public int2 chunkCoordinate;
     public BlockType[,,] blocks;
+
+    //constants for better accessing
+    public const int CHUNK_SIZE_X = 32;
+    public const int CHUNK_SIZE_Y = 128;
+    public const int CHUNK_SIZE_Z = 32;
+
+
+    [HideInInspector]
+    public TerrainGenerator terrainGenerator;
+
+    private bool isInitialized = false;
 
     private MeshFilter meshFilter; //holds the geometry of the mesh
     private MeshRenderer meshRenderer; //renders the mesh
@@ -17,82 +29,64 @@ public class Chunk : MonoBehaviour
 
     private void Start()
     {
-        InitializeChunk();
-        SetPosition();
-        GenerateMesh();
+
+        // Only run if we haven't been explicitly initialized
+        if (!isInitialized && terrainGenerator != null)
+        {
+            InitializeChunk();
+            SetPosition();
+            GenerateMesh();
+        }
     }
 
     public void InitializeChunk()
     {
-        blocks = new BlockType[32, 128, 32]; // This defines the size of the chunk
-
-        float noiseScale = 0.025f; // Controls terrain roughness
-        int octaves = 4; // Number of Perlin noise layers
-        float persistence = 0.5f; // Controls terrain variation
-        float lacunarity = 2.0f; // Frequency multiplier per octave
-
-
-        //IMPORTANT: WHATEVER DIMENSIONS YOU SET HERE HAVE TO MATCH THE DIMENSIONS IN THE GenerateMesh() FUNCTION
-        // create a 32x32 grid of bedrock blocks at y = 0
-        for (int x = 0; x < 32; x++)
+        // Verify we have a terrain generator
+        if (terrainGenerator == null)
         {
-            for (int z = 0; z < 32; z++)
+            Debug.LogError("Terrain generator not assigned to chunk!");
+            return;
+        }
+        blocks = new BlockType[CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z]; // This defines the size of the chunk
+
+
+
+
+        // create a 32x32 grid of bedrock blocks
+        for (int x = 0; x < CHUNK_SIZE_X; x++)
+        {
+            for (int z = 0; z < CHUNK_SIZE_Z; z++)
             {
 
-                float noiseX = x + chunkCoordinate.x * 32;
-                float noiseZ = z + chunkCoordinate.y * 32;
-                // Get bedrock depth using the same weighted random function
-                int bedrockDepth = GetBedrockRandomDepth();
+                float worldX = x + chunkCoordinate.x * CHUNK_SIZE_X;
+                float worldZ = z + chunkCoordinate.y * CHUNK_SIZE_Z;
 
-                // Generate terrain height using fBm Perlin noise
-                float height = GeneratefBm(noiseX, noiseZ, noiseScale, octaves, persistence, lacunarity);
-                int terrainHeight = Mathf.FloorToInt(height * 30) + 50; // Scale & offset height
-
-                // Ensure terrain doesn't go out of bounds
-                terrainHeight = Mathf.Clamp(terrainHeight, bedrockDepth + 1, 127);
+                int terrainHeight = terrainGenerator.GetTerrainHeight(worldX, worldZ);
+                int bedrockHeight = terrainGenerator.GetBedrockHeight(worldX, worldZ);
 
                 for (int y = 0; y < terrainHeight; y++)
                 {
-                    if (y < bedrockDepth)
+                    if (y < bedrockHeight)
                     {
                         blocks[x, y, z] = BlockType.Bedrock; // Place bedrock based on weighted depth
                     }
-                    else if (y < terrainHeight - 5)
+                    else if (y < terrainHeight - 4)
                     {
                         blocks[x, y, z] = BlockType.Stone; // Stone layer underground
                     }
-                    else if (y < terrainHeight - 1)
+                    else if (y < terrainHeight)
                     {
                         blocks[x, y, z] = BlockType.Dirt; // Dirt near the surface
                     }
                 }
             }
         }
+        isInitialized = true;
     }
 
 
-    // fBm function for smooth terrain variation
-    private float GeneratefBm(float x, float z, float scale, int octaves, float persistence, float lacunarity)
-    {
-        float total = 0;
-        float frequency = scale;
-        float amplitude = 1;
-        float maxValue = 0;
 
-        for (int i = 0; i < octaves; i++)
-        {
-            total += Mathf.PerlinNoise(x * frequency, z * frequency) * amplitude;
-            maxValue += amplitude;
-
-            amplitude *= persistence; // Reduce amplitude each octave
-            frequency *= lacunarity; // Increase frequency each octave
-        }
-
-        return total / maxValue; // Normalize to 0-1 range
-    }
-
-
-    private void GenerateMesh()
+    public void GenerateMesh()
     {
         meshFilter = gameObject.AddComponent<MeshFilter>();
         meshRenderer = gameObject.AddComponent<MeshRenderer>();
@@ -165,18 +159,7 @@ public class Chunk : MonoBehaviour
 
 
 
-
-    // Returns a weighted random bedrock depth. This makes it so the bedrock layer is most likely to be 2 cubes deep, but can also be 1 or 3 deep
-    private int GetBedrockRandomDepth()
-    {
-        float randomValue = UnityEngine.Random.value; // Generates a value between 0.0 and 1.0
-
-        if (randomValue < 0.2f) return 1; // 20% chance for 1 block deep
-        if (randomValue < 0.8f) return 2; // 60% chance for 2 blocks deep
-        return 3; // 20% chance for 3 blocks deep
-    }
-
-    private void SetPosition()
+    public void SetPosition()
     {
         // Set the chunk's world position based on its chunk coordinates
         transform.position = new Vector3(chunkCoordinate.x * 32, 0, chunkCoordinate.y * 32);

@@ -1,25 +1,37 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Unity.Mathematics;
-using System.Linq;
 
 public class ChunkManager : MonoBehaviour
 {
     public Transform player;
     public Camera playerCamera;
-    public int viewDistance = 10; // Number of chunks visible around the player (2 means a 5x5 grid)
+    public int viewDistance = 3; // Number of chunks visible around the player (2 means a 5x5 grid)
     //this is because there are 2 to the player's left side, 2 to the right side, and the one the player is on
     //which makes a 5x5 grid when viewDistance = 2, or a 7x7 grid when viewDistance = 3
     //or a 11x11 grid if viewDistance = 5
     public bool prioritizeViewDirection = true; //prioritize rendering chunks within view
+
+    [Header("Terrain Settings")]
+    public TerrainGenerator terrainGenerator;
     private Dictionary<int2, Chunk> activeChunks = new Dictionary<int2, Chunk>();
     private Queue<Chunk> chunkPool = new Queue<Chunk>(); // Stores reusable chunks
 
     private int chunkSize = 32;
     private List<int2> prioritizedChunks = new List<int2>(); //direction based loading
 
+
     void Start()
     {
+        // Create terrain generator if not assigned
+        if (terrainGenerator == null)
+        {
+            terrainGenerator = gameObject.AddComponent<TerrainGenerator>();
+            Debug.Log("TerrainGenerator component created");
+        }
+        
+        // Set chunk size from Chunk constants
+        chunkSize = Chunk.CHUNK_SIZE_X;
         UpdateChunks();
     }
 
@@ -116,7 +128,11 @@ public class ChunkManager : MonoBehaviour
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {
         Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
-        Bounds chunkBounds = new Bounds(new Vector3(chunkX * 32 + 16, 64, chunkZ * 32 + 16), new Vector3(32, 128, 32));
+        Bounds chunkBounds = new Bounds(new Vector3(chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X/2, 
+                      Chunk.CHUNK_SIZE_Y/2, 
+                      chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z/2), 
+            new Vector3(Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Y, Chunk.CHUNK_SIZE_Z)
+        );
 
         return GeometryUtility.TestPlanesAABB(planes, chunkBounds);
     }
@@ -130,16 +146,20 @@ public class ChunkManager : MonoBehaviour
         {
             chunk = chunkPool.Dequeue(); // Reuse old chunk
             chunk.gameObject.SetActive(true);
+            chunk.chunkCoordinate = coord;
         }
         else
         {
             GameObject chunkObject = new GameObject($"Chunk {coord.x}, {coord.y}");
+            chunkObject.transform.parent = transform;
             chunk = chunkObject.AddComponent<Chunk>();
+            chunk.chunkCoordinate = coord;
         }
 
-        chunk.chunkCoordinate = coord;
-        chunk.transform.position = new Vector3(coord.x * chunkSize, 0, coord.y * chunkSize);
+        chunk.terrainGenerator = terrainGenerator;
         chunk.InitializeChunk();
+        chunk.SetPosition();
+        chunk.GenerateMesh();
         activeChunks[coord] = chunk;
     }
 
