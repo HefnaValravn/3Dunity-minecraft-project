@@ -26,6 +26,8 @@ public class Chunk : MonoBehaviour
     private Material bedrockMaterial;
     private Material stoneMaterial;
     private Material dirtMaterial;
+    private Material grassSideMaterial;
+    private Material grassTopMaterial;
 
     private void Start()
     {
@@ -64,7 +66,7 @@ public class Chunk : MonoBehaviour
                 int terrainHeight = terrainGenerator.GetTerrainHeight(worldX, worldZ);
                 int bedrockHeight = terrainGenerator.GetBedrockHeight(worldX, worldZ);
 
-                for (int y = 0; y < terrainHeight; y++)
+                for (int y = 0; y <= terrainHeight; y++)
                 {
                     if (y < bedrockHeight)
                     {
@@ -77,6 +79,10 @@ public class Chunk : MonoBehaviour
                     else if (y < terrainHeight)
                     {
                         blocks[x, y, z] = BlockType.Dirt; // Dirt near the surface
+                    }
+                    else if (y == terrainHeight)
+                    {
+                        blocks[x, y, z] = BlockType.Grass; //Grass layer on top, only 1 block thick
                     }
                 }
             }
@@ -105,12 +111,16 @@ public class Chunk : MonoBehaviour
         bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
         stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
         dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
+        grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
+        grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
         Texture2D dirtTexture = Resources.Load<Texture2D>("dirt");
+        Texture2D grassSideTexture = Resources.Load<Texture2D>("grassside");
+        Texture2D grassTopTexture = Resources.Load<Texture2D>("grasstop");
 
-        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null)
+        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null | grassSideTexture == null || grassTopTexture == null)
         {
             Debug.LogError("Failed to load textures!");
         }
@@ -119,6 +129,8 @@ public class Chunk : MonoBehaviour
             bedrockMaterial.mainTexture = bedrockTexture;
             stoneMaterial.mainTexture = stoneTexture;
             dirtMaterial.mainTexture = dirtTexture;
+            grassSideMaterial.mainTexture = grassSideTexture;
+            grassTopMaterial.mainTexture = grassTopTexture;
         }
 
 
@@ -126,9 +138,11 @@ public class Chunk : MonoBehaviour
         meshFilter.mesh = mesh;
 
         List<Vector3> verticesList = new List<Vector3>();
-        List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock, stone & dirt
+        List<int> trianglesBedrock = new List<int>();  // Separate lists for bedrock, stone, dirt & grass
         List<int> trianglesStone = new List<int>();
         List<int> trianglesDirt = new List<int>();
+        List<int> trianglesGrassSide = new List<int>();
+        List<int> trianglesGrassTop = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
 
         int vertexOffset = 0;
@@ -151,20 +165,26 @@ public class Chunk : MonoBehaviour
                     {
                         AddBlockMesh(x, y, z, verticesList, trianglesDirt, uvsList, ref vertexOffset);
                     }
+                    else if (blocks[x, y, z] == BlockType.Grass)
+                    {
+                        AddGrassBlockMesh(x, y, z, verticesList, trianglesGrassSide, trianglesGrassTop, trianglesDirt, uvsList, ref vertexOffset);
+                    }
                 }
             }
         }
 
         mesh.vertices = verticesList.ToArray();
-        mesh.subMeshCount = 3; // One submesh for bedrock, one for stone, one for dirt
+        mesh.subMeshCount = 5; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces)
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
         mesh.SetTriangles(trianglesDirt.ToArray(), 2);    // Third for dirt
+        mesh.SetTriangles(trianglesGrassSide.ToArray(), 3); // Fourth for grass side
+        mesh.SetTriangles(trianglesGrassTop.ToArray(), 4); // Fifth for grass top
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 
         // Assign all materials to the renderer
-        Material[] materials = new Material[3] { bedrockMaterial, stoneMaterial, dirtMaterial };
+        Material[] materials = new Material[5] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial };
         meshRenderer.materials = materials;
     }
 
@@ -175,6 +195,56 @@ public class Chunk : MonoBehaviour
         // Set the chunk's world position based on its chunk coordinates
         transform.position = new Vector3(chunkCoordinate.x * 32, 0, chunkCoordinate.y * 32);
     }
+
+    private void AddGrassBlockMesh(int x, int y, int z, List<Vector3> verticesList,
+                               List<int> trianglesGrassSide, List<int> trianglesGrassTop,
+                               List<int> trianglesDirt, List<Vector2> uvsList, ref int vertexOffset)
+    {
+        Vector3[] vertices = new Vector3[]{
+        new Vector3(x, y, z),           // 0, front bottom left
+        new Vector3(x + 1, y, z),       // 1, front bottom right
+        new Vector3(x + 1, y + 1, z),   // 2, front top right
+        new Vector3(x, y + 1, z),       // 3, front top left
+        new Vector3(x, y + 1, z + 1),   // 4, back top left
+        new Vector3(x, y, z + 1),       // 5, back bottom left
+        new Vector3(x + 1, y, z + 1),   // 6, back bottom right
+        new Vector3(x + 1, y + 1, z + 1)// 7, back top right
+    };
+
+        // Check if block has neighbors
+        bool hasFrontNeighbor = z > 0 && IsBlockSolid(x, y, z - 1);
+        bool hasBackNeighbor = z < CHUNK_SIZE_Z - 1 && IsBlockSolid(x, y, z + 1);
+        bool hasLeftNeighbor = x > 0 && IsBlockSolid(x - 1, y, z);
+        bool hasRightNeighbor = x < CHUNK_SIZE_X - 1 && IsBlockSolid(x + 1, y, z);
+        bool hasTopNeighbor = y < CHUNK_SIZE_Y - 1 && IsBlockSolid(x, y + 1, z);
+        bool hasBottomNeighbor = y > 0 && IsBlockSolid(x, y - 1, z);
+
+        // Add faces that are visible
+        // Front face (grass side)
+        if (!hasFrontNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 0, 1, 2, 3 }, verticesList, trianglesGrassSide, uvsList, ref vertexOffset, "front");
+
+        // Left face (grass side)
+        if (!hasLeftNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 5, 0, 3, 4 }, verticesList, trianglesGrassSide, uvsList, ref vertexOffset, "left");
+
+        // Right face (grass side)
+        if (!hasRightNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 1, 6, 7, 2 }, verticesList, trianglesGrassSide, uvsList, ref vertexOffset, "right");
+
+        // Top face (grass top)
+        if (!hasTopNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 3, 2, 7, 4 }, verticesList, trianglesGrassTop, uvsList, ref vertexOffset, "top");
+
+        // Bottom face (dirt)
+        if (!hasBottomNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 0, 5, 6, 1 }, verticesList, trianglesDirt, uvsList, ref vertexOffset, "bottom");
+
+        // Back face (grass side)
+        if (!hasBackNeighbor)
+            AddFaceWithConsistentUVs(vertices, new int[] { 5, 4, 7, 6 }, verticesList, trianglesGrassSide, uvsList, ref vertexOffset, "back");
+    }
+
 
     private void AddBlockMesh(int x, int y, int z, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
     {
@@ -205,31 +275,33 @@ public class Chunk : MonoBehaviour
 
         // Only add faces that are visible (not covered by other blocks)
         if (!hasFrontNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 0, 1, 2, 3 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 0, 1, 2, 3 }, verticesList, trianglesList, uvsList, ref vertexOffset, "front");
 
         if (!hasLeftNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 5, 0, 3, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 5, 0, 3, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset, "left");
 
         if (!hasRightNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 1, 6, 7, 2 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 1, 6, 7, 2 }, verticesList, trianglesList, uvsList, ref vertexOffset, "right");
 
         if (!hasTopNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 3, 2, 7, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 3, 2, 7, 4 }, verticesList, trianglesList, uvsList, ref vertexOffset, "top");
 
         if (!hasBottomNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 0, 5, 6, 1 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 0, 5, 6, 1 }, verticesList, trianglesList, uvsList, ref vertexOffset, "bottom");
 
         if (!hasBackNeighbor)
-            AddFaceWithUVs(vertices, new int[] { 5, 4, 7, 6 }, verticesList, trianglesList, uvsList, ref vertexOffset);
+            AddFaceWithConsistentUVs(vertices, new int[] { 5, 4, 7, 6 }, verticesList, trianglesList, uvsList, ref vertexOffset, "back");
     }
 
     private bool IsBlockSolid(int x, int y, int z)
     {
         // Check if this block position contains a solid block (either bedrock or stone)
-        return blocks[x, y, z] == BlockType.Bedrock || blocks[x, y, z] == BlockType.Stone || blocks[x, y, z] == BlockType.Dirt;
+        return blocks[x, y, z] == BlockType.Bedrock || blocks[x, y, z] == BlockType.Stone || blocks[x, y, z] == BlockType.Dirt || blocks[x, y, z] == BlockType.Grass;
     }
 
-    private void AddFaceWithUVs(Vector3[] cubeVertices, int[] faceIndices, List<Vector3> verticesList, List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset)
+
+    private void AddFaceWithConsistentUVs(Vector3[] cubeVertices, int[] faceIndices, List<Vector3> verticesList,
+                                         List<int> trianglesList, List<Vector2> uvsList, ref int vertexOffset, string faceType)
     {
         // Add the 4 vertices for this face
         for (int i = 0; i < 4; i++)
@@ -237,13 +309,31 @@ public class Chunk : MonoBehaviour
             verticesList.Add(cubeVertices[faceIndices[i]]);
         }
 
-        // Add UV coordinates for the 4 vertices (mapping a full texture to this face)
-        uvsList.Add(new Vector2(0, 0)); // Bottom left
-        uvsList.Add(new Vector2(1, 0)); // Bottom right
-        uvsList.Add(new Vector2(1, 1)); // Top right
-        uvsList.Add(new Vector2(0, 1)); // Top left
+        // all faces use standard UV mapping, except the grass back face, which needs rotating
+        Vector2[] standardUVs = new Vector2[]
+        {
+            new Vector2(0, 0), // Bottom left
+            new Vector2(1, 0), // Bottom right
+            new Vector2(1, 1), // Top right
+            new Vector2(0, 1)  // Top left
+        };
 
-        // Add two triangles to make a quad (face)
+        // Modify for back face, so the texture is upright instead of to the side
+        if (faceType == "back")
+        {
+            standardUVs = new Vector2[]
+            {
+                new Vector2(1, 0), // Bottom right
+                new Vector2(1, 1), // Top right
+                new Vector2(0, 1), // Top left
+                new Vector2(0, 0)  // Bottom left
+            };
+        }
+
+        // for all other types of face, just add regular UVs
+        uvsList.AddRange(standardUVs);
+
+        // Add triangles for each face
         trianglesList.Add(vertexOffset);
         trianglesList.Add(vertexOffset + 2);
         trianglesList.Add(vertexOffset + 1);

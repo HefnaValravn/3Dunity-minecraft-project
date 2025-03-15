@@ -5,6 +5,7 @@ public enum BlockType
     Empty = 0,
     Bedrock = 1,
     Stone = 2,
-    Air = 3,
-    Dirt = 4
+    Dirt = 3,
+    Grass = 4,
+    Air = 5,
 }
