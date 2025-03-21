@@ -158,6 +158,8 @@ public class Chunk : MonoBehaviour
 
 
         mesh = new Mesh();
+        //added this because of that issue with rightmost blocks on some chunks not rendering properly; turns out I had too many vertices
+        //to be rendered on each chunk, so I had to increase the max amount of vertices on each chunk
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
         meshFilter.mesh = mesh;
 
@@ -290,7 +292,6 @@ public class Chunk : MonoBehaviour
             new Vector3(x + 1, y + 1, z + 1) //7, back top right
         };
 
-        // IMPORTANT: Change in boundary handling
         // For edges of the chunk, ALWAYS render the face
         bool hasFrontNeighbor = z > 0 ? IsBlockSolid(x, y, z - 1) : false;
         bool hasBackNeighbor = z < CHUNK_SIZE_Z - 1 ? IsBlockSolid(x, y, z + 1) : false;
