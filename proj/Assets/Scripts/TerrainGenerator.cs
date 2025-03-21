@@ -16,10 +16,26 @@ public class TerrainGenerator : MonoBehaviour
     //how much frequency increases with each octave
     public float lacunarity = 2.0f;
     public int seed = 12345;
-    
+
+
+
+
     [Header("Bedrock Settings")]
     public float bedrockNoiseScale = 0.05f;
-    
+
+
+
+
+    //WARNING: THESE ARE THE ONLY PARAMETERS THAT SEEM TO WORK TO MAKE GOOD, BUT NOT TOO ABUNDANT, CAVES. DO NOT CHANGE caveNoiseScale AND caveDensityThreshold
+    [Header("Cave Settings")]
+    public float caveNoiseScale = 0.1f; //controls size of caves. larger value, smaller cave, and viceversa
+    public float caveDensityThreshold = 0.35f; // controls how many caves to generate. larger value, less caves, and viceversa
+    public int caveOctaves = 2; // controls complexity/detail of caves
+    public float cavePersistence = 0.5f;
+    public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
+    public int caveSeed = 54321; // Different seed for caves
+
+
     // Initialize with a random seed if not set
     private void Awake()
     {
@@ -28,19 +44,25 @@ public class TerrainGenerator : MonoBehaviour
             seed = Random.Range(1, 100000);
             Debug.Log($"Using random seed: {seed}");
         }
+
+        if (caveSeed == 0)
+        {
+            caveSeed = Random.Range(1, 100000);
+            Debug.Log($"Using random cave seed: {caveSeed}");
+        }
     }
-    
+
     // Get terrain height at any world position
     public int GetTerrainHeight(float worldX, float worldZ)
     {
         // Generate terrain height using fBm Perlin noise
         float height = GeneratefBm(worldX, worldZ, noiseScale, octaves, persistence, lacunarity);
         int terrainHeight = Mathf.FloorToInt(height * 30) + 50; // Scale & offset height
-        
+
         // Clamp to valid range
         return Mathf.Clamp(terrainHeight, GetBedrockHeight(worldX, worldZ) + 1, Chunk.CHUNK_SIZE_Y - 1);
     }
-    
+
     // Get bedrock height at any world position
     public int GetBedrockHeight(float worldX, float worldZ)
     {
@@ -48,13 +70,13 @@ public class TerrainGenerator : MonoBehaviour
         float offsetX = seed * 0.01f;
         float offsetZ = seed * 0.01f;
         float bedrockNoise = Mathf.PerlinNoise((worldX + offsetX) * bedrockNoiseScale, (worldZ + offsetZ) * bedrockNoiseScale);
-        
+
         // Map noise to bedrock depth (1-3)
         if (bedrockNoise < 0.2f) return 1;
         if (bedrockNoise < 0.8f) return 2;
         return 3;
     }
-    
+
     // fBm function for smooth terrain variation
     private float GeneratefBm(float x, float z, float scale, int octaves, float persistence, float lacunarity)
     {
@@ -62,7 +84,7 @@ public class TerrainGenerator : MonoBehaviour
         float frequency = scale;
         float amplitude = 1;
         float maxValue = 0;
-        
+
         // Offset coordinates by seed for different terrain patterns
         float offsetX = seed * 0.01f;
         float offsetZ = seed * 0.01f;
@@ -72,6 +94,58 @@ public class TerrainGenerator : MonoBehaviour
             total += Mathf.PerlinNoise((x + offsetX) * frequency, (z + offsetZ) * frequency) * amplitude;
             maxValue += amplitude;
 
+            amplitude *= persistence;
+            frequency *= lacunarity;
+        }
+
+        return total / maxValue;
+    }
+
+
+
+    // Determine if a block should be a cave
+    public bool IsCaveBlock(float worldX, float worldY, float worldZ)
+    {
+        // Don't generate caves in top layer near grass/surface
+        if (worldY >= GetTerrainHeight(worldX, worldZ) - 3)
+            return false;
+
+        // Don't generate caves in bedrock layer
+        if (worldY <= GetBedrockHeight(worldX, worldZ))
+            return false;
+
+        // Use 3D Perlin noise for cave generation
+        float caveNoise = Generate3DfBm(worldX, worldY, worldZ, caveNoiseScale, caveOctaves, cavePersistence, caveLacunarity);
+
+        // If noise value is below threshold, this is a cave
+        return caveNoise < caveDensityThreshold;
+    }
+
+    // 3D fBm for cave generation
+    private float Generate3DfBm(float x, float y, float z, float scale, int octaves, float persistence, float lacunarity)
+    {
+        float total = 0;
+        float frequency = scale;
+        float amplitude = 1;
+        float maxValue = 0;
+
+        // Use a different seed for caves
+        float offsetX = caveSeed * 0.01f;
+        float offsetY = caveSeed * 0.02f;
+        float offsetZ = caveSeed * 0.01f;
+
+        for (int i = 0; i < octaves; i++)
+        {
+            // For 3D noise, we combine multiple 2D noise samples
+            float xy = Mathf.PerlinNoise((x + offsetX) * frequency, (y + offsetY) * frequency);
+            float yz = Mathf.PerlinNoise((y + offsetY) * frequency, (z + offsetZ) * frequency);
+            float xz = Mathf.PerlinNoise((x + offsetX) * frequency, (z + offsetZ) * frequency);
+
+            // Average the noise samples for a pseudo-3D effect
+            float noise = (xy + yz + xz) / 3f;
+
+            total += noise * amplitude;
+            maxValue += amplitude;
             amplitude *= persistence;
             frequency *= lacunarity;
         }

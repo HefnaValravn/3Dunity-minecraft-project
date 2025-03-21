@@ -87,6 +87,29 @@ public class Chunk : MonoBehaviour
                 }
             }
         }
+
+        //second iteration to carve out caves
+        for (int x = 0; x < CHUNK_SIZE_X; x++)
+        {
+            for (int y = 0; y < CHUNK_SIZE_Y; y++)
+            {
+                for (int z = 0; z < CHUNK_SIZE_Z; z++)
+                {
+                    float worldX = x + chunkCoordinate.x * CHUNK_SIZE_X;
+                    float worldY = y;
+                    float worldZ = z + chunkCoordinate.y * CHUNK_SIZE_Z;
+
+                    //check if this block should be cave or not
+                    if (blocks[x, y, z] != BlockType.Air && terrainGenerator.IsCaveBlock(worldX, worldY, worldZ))
+                    {
+                        blocks[x, y, z] = BlockType.Air;
+                    }
+                }
+            }
+        }
+
+
+
         isInitialized = true;
     }
 
@@ -296,7 +319,10 @@ public class Chunk : MonoBehaviour
     private bool IsBlockSolid(int x, int y, int z)
     {
         // Check if this block position contains a solid block (either bedrock or stone)
-        return blocks[x, y, z] == BlockType.Bedrock || blocks[x, y, z] == BlockType.Stone || blocks[x, y, z] == BlockType.Dirt || blocks[x, y, z] == BlockType.Grass;
+        return blocks[x, y, z] == BlockType.Bedrock || 
+        blocks[x, y, z] == BlockType.Stone || 
+        blocks[x, y, z] == BlockType.Dirt || 
+        blocks[x, y, z] == BlockType.Grass;
     }
 
 

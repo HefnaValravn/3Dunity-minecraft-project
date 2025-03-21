@@ -152,8 +152,14 @@ MonoBehaviour:
   octaves: 4
   persistence: 0.5
   lacunarity: 2
-  seed: 12345
+  seed: 0
   bedrockNoiseScale: 0.05
+  caveNoiseScale: 0.1
+  caveDensityThreshold: 0.35
+  caveOctaves: 2
+  cavePersistence: 0.5
+  caveLacunarity: 2
+  caveSeed: 0
 --- !u!4 &130113486
 Transform:
   m_ObjectHideFlags: 0
