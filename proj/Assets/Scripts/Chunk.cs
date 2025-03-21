@@ -290,10 +290,10 @@ public class Chunk : MonoBehaviour
 
         // Check if block has neighbors and only add faces when needed
         bool hasFrontNeighbor = z > 0 && IsBlockSolid(x, y, z - 1);
-        bool hasBackNeighbor = z < 31 && IsBlockSolid(x, y, z + 1);
+        bool hasBackNeighbor = z < CHUNK_SIZE_Z - 1 && IsBlockSolid(x, y, z + 1);
         bool hasLeftNeighbor = x > 0 && IsBlockSolid(x - 1, y, z);
-        bool hasRightNeighbor = x < 31 && IsBlockSolid(x + 1, y, z);
-        bool hasTopNeighbor = y < 127 && IsBlockSolid(x, y + 1, z);
+        bool hasRightNeighbor = x < CHUNK_SIZE_X - 1 && IsBlockSolid(x + 1, y, z);
+        bool hasTopNeighbor = y < CHUNK_SIZE_Y - 1 && IsBlockSolid(x, y + 1, z);
         bool hasBottomNeighbor = y > 0 && IsBlockSolid(x, y - 1, z);
 
         // Only add faces that are visible (not covered by other blocks)
@@ -318,11 +318,20 @@ public class Chunk : MonoBehaviour
 
     private bool IsBlockSolid(int x, int y, int z)
     {
-        // Check if this block position contains a solid block (either bedrock or stone)
-        return blocks[x, y, z] == BlockType.Bedrock || 
-        blocks[x, y, z] == BlockType.Stone || 
-        blocks[x, y, z] == BlockType.Dirt || 
-        blocks[x, y, z] == BlockType.Grass;
+        // First check if coordinates are within bounds of this chunk
+        if (x < 0 || x >= CHUNK_SIZE_X || y < 0 || y >= CHUNK_SIZE_Y || z < 0 || z >= CHUNK_SIZE_Z)
+        {
+            // For blocks at the edge of the chunk, we could check neighboring chunks here
+            // But for now, just consider out-of-bounds blocks as non-solid (air)
+            return false;
+        }
+
+        // Check if this block position contains a solid block
+        return blocks[x, y, z] == BlockType.Bedrock ||
+            blocks[x, y, z] == BlockType.Stone ||
+            blocks[x, y, z] == BlockType.Dirt ||
+            blocks[x, y, z] == BlockType.Grass;
+
     }
 
 
