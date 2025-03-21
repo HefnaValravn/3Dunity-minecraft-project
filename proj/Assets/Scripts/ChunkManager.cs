@@ -5,7 +5,9 @@ using Unity.Mathematics;
 public class ChunkManager : MonoBehaviour
 {
     public Transform player;
-    public Camera playerCamera;
+    public Camera firstPlayerCamera;
+    public Camera thirdPlayerCamera;
+    private Camera activeCamera;
     public int viewDistance = 3; // Number of chunks visible around the player (2 means a 5x5 grid)
     //this is because there are 2 to the player's left side, 2 to the right side, and the one the player is on
     //which makes a 5x5 grid when viewDistance = 2, or a 7x7 grid when viewDistance = 3
@@ -32,12 +34,33 @@ public class ChunkManager : MonoBehaviour
         
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
+        UpdateActiveCamera();
         UpdateChunks();
     }
 
     void Update()
     {
+        UpdateActiveCamera();
         UpdateChunks();
+    }
+
+    private void UpdateActiveCamera()
+    {
+        // Determine which camera is currently active in the scene
+        if (firstPlayerCamera.gameObject.activeInHierarchy)
+        {
+            activeCamera = firstPlayerCamera;
+        }
+        else if (thirdPlayerCamera.gameObject.activeInHierarchy)
+        {
+            activeCamera = thirdPlayerCamera;
+        }
+        else
+        {
+            // Fallback to main camera if neither is active
+            activeCamera = Camera.main;
+            Debug.LogWarning("Neither first-person nor third-person camera is active. Using Camera.main as fallback.");
+        }
     }
 
     private void UpdateChunks()
@@ -98,7 +121,7 @@ public class ChunkManager : MonoBehaviour
         prioritizedChunks.AddRange(requiredChunks);
         
         // Get view direction as a 2D vector (xz plane)
-        Vector3 viewDir = playerCamera.transform.forward;
+        Vector3 viewDir = activeCamera.transform.forward;
         Vector2 viewDir2D = new Vector2(viewDir.x, viewDir.z).normalized;
         
         // Get player position
@@ -127,7 +150,7 @@ public class ChunkManager : MonoBehaviour
 
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {
-        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(Camera.main);
+        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(activeCamera);
         Bounds chunkBounds = new Bounds(new Vector3(chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X/2, 
                       Chunk.CHUNK_SIZE_Y/2, 
                       chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z/2), 

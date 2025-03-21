@@ -909,7 +909,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 1372197568}
-  playerCamera: {fileID: 330585545}
+  firstPlayerCamera: {fileID: 330585545}
+  thirdPlayerCamera: {fileID: 1463593758}
   viewDistance: 3
   prioritizeViewDirection: 1
   terrainGenerator: {fileID: 130113485}
