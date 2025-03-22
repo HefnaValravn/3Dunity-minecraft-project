@@ -102,21 +102,50 @@ public class TerrainGenerator : MonoBehaviour
     }
 
 
+    public bool IsSurfaceCaveEntrance(float worldX, float worldZ)
+    {
+        //use perlin noise to determine if this spot should have a cav eentrance
+        float entranceNoise = Mathf.PerlinNoise((worldX + seed * 0.05f) * 0.02f, (worldZ + seed * 0.05f) * 0.02f);
+
+        //Only about 5-10% of locations will have surface entrances
+        return entranceNoise > 0.9f;
+    }
+
 
     // Determine if a block should be a cave
     public bool IsCaveBlock(float worldX, float worldY, float worldZ)
     {
-        // Don't generate caves in top layer near grass/surface
-        if (worldY >= GetTerrainHeight(worldX, worldZ) - 3)
-            return false;
+
+        int terrainHeight = GetTerrainHeight(worldX, worldZ);
+
 
         // Don't generate caves in bedrock layer
         if (worldY <= GetBedrockHeight(worldX, worldZ))
             return false;
 
+        bool canBeSurfaceEntrance = IsSurfaceCaveEntrance(worldX, worldZ);
+
+
+        //if not a surface entrance, still maintain rule with not generating caves close to surface
+        if (!canBeSurfaceEntrance && worldX >= terrainHeight - 3)
+            return false;
+
         // Use 3D Perlin noise for cave generation
         float caveNoise = Generate3DfBm(worldX, worldY, worldZ, caveNoiseScale, caveOctaves, cavePersistence, caveLacunarity);
 
+        //make caves narrower near the top for more natural shapes (circular-ish)
+        if (canBeSurfaceEntrance && worldY >= terrainHeight - 5)
+        {
+            //calculate how close we are to surface
+            float surfaceProximity = (worldY - (terrainHeight - 5)) / 5f;
+
+            //if close to surface, make it harder to form (therefore making caves narrower near the top)
+            float adjustedThreshold = caveDensityThreshold - (0.1f * (1f - surfaceProximity));
+
+            return caveNoise < adjustedThreshold;
+        }
+
+        //else, just use normal threshold
         // If noise value is below threshold, this is a cave
         return caveNoise < caveDensityThreshold;
     }
