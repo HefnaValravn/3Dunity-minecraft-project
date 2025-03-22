@@ -66,6 +66,10 @@ public class Chunk : MonoBehaviour
                 int terrainHeight = terrainGenerator.GetTerrainHeight(worldX, worldZ);
                 int bedrockHeight = terrainGenerator.GetBedrockHeight(worldX, worldZ);
 
+                // these two are part of the mechanism to "smoothen" the grass pattern at the top (make the surface "flatter")
+                bool grassLayerPlaced = false; // did we add the grass layer?
+                bool hasGrass = false; // is there grass?
+
                 for (int y = 0; y <= terrainHeight; y++)
                 {
                     if (y < bedrockHeight)
@@ -82,13 +86,78 @@ public class Chunk : MonoBehaviour
                     }
                     else if (y == terrainHeight)
                     {
-                        blocks[x, y, z] = BlockType.Grass; //Grass layer on top, only 1 block thick
+                        blocks[x, y, z] = BlockType.Grass;
+                        hasGrass = true;
+                    }
+                }
+
+                // Now, remove excess grass from the top
+                if (hasGrass)
+                {
+                    for (int y = terrainHeight; y >= 0; y--)
+                    {
+                        if (blocks[x, y, z] == BlockType.Grass)
+                        {
+                            if (!grassLayerPlaced)
+                            {
+                                // Keep the first (lowest) grass block
+                                grassLayerPlaced = true;
+                            }
+                            else
+                            {
+                                // Remove any grass blocks above the first one
+                                blocks[x, y, z] = BlockType.Air;
+                            }
+                        }
+                    }
+
+                }
+            }
+        }
+
+        // Second pass: Remove isolated grass blocks
+        for (int x = 0; x < CHUNK_SIZE_X; x++)
+        {
+            for (int z = 0; z < CHUNK_SIZE_Z; z++)
+            {
+                for (int y = 1; y < CHUNK_SIZE_Y - 1; y++) // Avoid out-of-bounds issues
+                {
+                    if (blocks[x, y, z] == BlockType.Grass)
+                    {
+                        // Check if all surrounding blocks are air
+                        bool isIsolated = true;
+                        int[] dx = { -1, 1, 0, 0, 0, 0 };
+                        int[] dy = { 0, 0, -1, 1, 0, 0 };
+                        int[] dz = { 0, 0, 0, 0, -1, 1 };
+
+                        for (int i = 0; i < 6; i++)
+                        {
+                            int nx = x + dx[i];
+                            int ny = y + dy[i];
+                            int nz = z + dz[i];
+
+                            if (nx >= 0 && nx < CHUNK_SIZE_X &&
+                                ny >= 0 && ny < CHUNK_SIZE_Y &&
+                                nz >= 0 && nz < CHUNK_SIZE_Z)
+                            {
+                                if (blocks[nx, ny, nz] != BlockType.Air)
+                                {
+                                    isIsolated = false;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (isIsolated)
+                        {
+                            blocks[x, y, z] = BlockType.Air; // Remove the isolated grass block
+                        }
                     }
                 }
             }
         }
 
-        //second iteration to carve out caves
+        //third iteration to carve out caves
         for (int x = 0; x < CHUNK_SIZE_X; x++)
         {
             for (int y = 0; y < CHUNK_SIZE_Y; y++)
