@@ -4,6 +4,9 @@ public class CameraSwitcher : MonoBehaviour
 {
     [SerializeField] private Camera[] cameras;
     [SerializeField] private KeyCode switchKey = KeyCode.C; // Or use Input System
+    [SerializeField] private GameObject[] bodyParts;
+    [SerializeField] private int firstPersonCameraIndex = 0;
+    
     private int currentCameraIndex = 0;
 
     void Start()
@@ -13,6 +16,8 @@ public class CameraSwitcher : MonoBehaviour
         {
             cameras[i].gameObject.SetActive(false);
         }
+
+        UpdateBodyVisibility();
     }
 
     void Update()
@@ -28,6 +33,18 @@ public class CameraSwitcher : MonoBehaviour
             
             // Enable new current camera
             cameras[currentCameraIndex].gameObject.SetActive(true);
+
+            UpdateBodyVisibility();
+        }
+    }
+
+    private void UpdateBodyVisibility()
+    {
+        bool isFirstPerson = (currentCameraIndex == firstPersonCameraIndex);
+
+        foreach(GameObject bodyPart in bodyParts)
+        {
+            bodyPart.SetActive(!isFirstPerson);
         }
     }
 }
