@@ -34,7 +34,10 @@ public class TerrainGenerator : MonoBehaviour
     public float cavePersistence = 0.5f;
     public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
     public int caveSeed = 54321; // Different seed for caves
-    
+
+
+    [Header("Surface Cave Entrance Settings")]
+    public float caveEntranceThreshold = 0.75f;
 
 
     // Initialize with a random seed if not set
@@ -109,23 +112,20 @@ public class TerrainGenerator : MonoBehaviour
         float entranceNoise = Mathf.PerlinNoise((worldX + seed * 0.05f) * 0.02f, (worldZ + seed * 0.05f) * 0.02f);
 
         //KEEP AROUND THIS VALUE; 0.9 IS WAY TOO HIGH FOR ANYTHING TO SPAWN
-        return entranceNoise > 0.75f;
+        return entranceNoise > caveEntranceThreshold;
     }
 
 
     // Determine if a block should be a cave
     public bool IsCaveBlock(float worldX, float worldY, float worldZ)
     {
-
         int terrainHeight = GetTerrainHeight(worldX, worldZ);
-
 
         // Don't generate caves in bedrock layer
         if (worldY <= GetBedrockHeight(worldX, worldZ))
             return false;
 
         bool canBeSurfaceEntrance = IsSurfaceCaveEntrance(worldX, worldZ);
-
 
         // If we're near the surface (within 3 blocks)...
         if (worldY >= terrainHeight - 3)
@@ -135,22 +135,27 @@ public class TerrainGenerator : MonoBehaviour
                 return false;
         }
 
+
+
         // Use 3D Perlin noise for cave generation
         float caveNoise = Generate3DfBm(worldX, worldY, worldZ, caveNoiseScale, caveOctaves, cavePersistence, caveLacunarity);
 
-        //make caves narrower near the top for more natural shapes (circular-ish)
-        if (canBeSurfaceEntrance && worldY >= terrainHeight - 5)
+        // Make caves narrower near the top for more natural shapes (circular-ish)
+        //the float after terrainHeight determines how far surface cave generation goes before
+        //normal caves start
+        if (canBeSurfaceEntrance && worldY >= terrainHeight - 10)
         {
-            //calculate how close we are to surface
-            float surfaceProximity = (worldY - (terrainHeight - 5)) / 5f;
+            // Calculate how close we are to surface
+            float surfaceProximity = (worldY - (terrainHeight - 10)) / 10f;
 
-            //if close to surface, make it harder to form (therefore making caves narrower near the top)
-            float adjustedThreshold = caveDensityThreshold - (0.15f * (1f - surfaceProximity));
+            // If close to surface, make it harder to form (therefore making caves narrower near the top)
+            //playing with the first float in this part helps with cave shape
+            float adjustedThreshold = caveDensityThreshold - (0.05f * (1f - surfaceProximity));
 
             return caveNoise < adjustedThreshold;
         }
 
-        //else, just use normal threshold
+        // Else, just use normal threshold
         // If noise value is below threshold, this is a cave
         return caveNoise < caveDensityThreshold;
     }

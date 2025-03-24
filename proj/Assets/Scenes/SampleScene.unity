@@ -160,6 +160,7 @@ MonoBehaviour:
   cavePersistence: 0.5
   caveLacunarity: 2
   caveSeed: 0
+  caveEntranceThreshold: 0.75
 --- !u!4 &130113486
 Transform:
   m_ObjectHideFlags: 0
@@ -1128,7 +1129,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 935be0016ff65ac6ea23570cf2b722a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 5
+  speed: 10
   bodyTransform: {fileID: 1728259164}
 --- !u!54 &1372197570
 Rigidbody:
