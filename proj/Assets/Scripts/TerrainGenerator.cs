@@ -104,11 +104,11 @@ public class TerrainGenerator : MonoBehaviour
 
     public bool IsSurfaceCaveEntrance(float worldX, float worldZ)
     {
-        //use perlin noise to determine if this spot should have a cav eentrance
+        //use perlin noise to determine if this spot should have a cave entrance
         float entranceNoise = Mathf.PerlinNoise((worldX + seed * 0.05f) * 0.02f, (worldZ + seed * 0.05f) * 0.02f);
 
-        //Only about 5-10% of locations will have surface entrances
-        return entranceNoise > 0.9f;
+        //KEEP AROUND THIS VALUE; 0.9 IS WAY TOO HIGH FOR ANYTHING TO SPAWN
+        return entranceNoise > 0.75f;
     }
 
 
@@ -126,9 +126,13 @@ public class TerrainGenerator : MonoBehaviour
         bool canBeSurfaceEntrance = IsSurfaceCaveEntrance(worldX, worldZ);
 
 
-        //if not a surface entrance, still maintain rule with not generating caves close to surface
-        if (!canBeSurfaceEntrance && worldX >= terrainHeight - 3)
-            return false;
+        // If we're near the surface (within 3 blocks)...
+        if (worldY >= terrainHeight - 3)
+        {
+            // Only allow cave blocks if this is a designated entrance location
+            if (!canBeSurfaceEntrance)
+                return false;
+        }
 
         // Use 3D Perlin noise for cave generation
         float caveNoise = Generate3DfBm(worldX, worldY, worldZ, caveNoiseScale, caveOctaves, cavePersistence, caveLacunarity);
@@ -140,7 +144,7 @@ public class TerrainGenerator : MonoBehaviour
             float surfaceProximity = (worldY - (terrainHeight - 5)) / 5f;
 
             //if close to surface, make it harder to form (therefore making caves narrower near the top)
-            float adjustedThreshold = caveDensityThreshold - (0.1f * (1f - surfaceProximity));
+            float adjustedThreshold = caveDensityThreshold - (0.15f * (1f - surfaceProximity));
 
             return caveNoise < adjustedThreshold;
         }
