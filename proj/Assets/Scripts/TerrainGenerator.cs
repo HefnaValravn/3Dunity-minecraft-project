@@ -34,6 +34,7 @@ public class TerrainGenerator : MonoBehaviour
     public float cavePersistence = 0.5f;
     public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
     public int caveSeed = 54321; // Different seed for caves
+    
 
 
     // Initialize with a random seed if not set
