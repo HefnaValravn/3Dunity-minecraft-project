@@ -6,18 +6,19 @@ This is the assignment for the course '3d graphics'. This assignment will be gra
 
 ## Requirements
 
-* You implemented features described in this document (you will not get any points for implementing something that isn't described here)
+* You implemented features described in this document (you will not get any points for implementing something that isn't described here, or for features marked as 'bonus')
 * You understand all the code that you submit, even if you have it from an AI model or a tutorial
 * You are not allowed to share code with others taking (or who have taken) this course
 * You are not allowed to use packages outside of the core Unity ones, without explicit approval (send me an email, and add a motivation)
 * Feel free to add extra features (eg debug camera, debug visualizations, debug logging), but if they interfere with your result (how things look / act), have a way to turn them on/off and have them default off.
 * Your code is tidy. By this I mean that you shouldn't have large swathes of duplicated code, bad indentation, or badly named variables. Do not worry too much about using patterns (assume your code won't be extended in the future) or complicated oo techniques, this is not the objectives of this course.
+* For each asset (texture, models) that you didn't create yourself, you have an entry in a text file (in the root of your repository, named 'attributions.txt'). The entry has the path to the asset on disk, the url of where you got it from, and the license. Make sure the license is compatible with how you're using it (educational purposes)
 
 ## First steps
 
 * Accept the assignment on [Github Classroom](https://classroom.github.com/a/uiOfXHY_)
 * Submit the link to the repo on your github that you got from accepting the assignment on Github
-* Create a new Universal 3D (or in older editors, URP) project in your repository. !!! make sure to name it 'proj' !!! (the reason of this is that the .gitignore file a)
+* Create a new Universal 3D (or in older editors, URP) project in your repository. !!! make sure to name it 'proj' !!! (the reason of this is that the .gitignore file assumes this folder)
 
  ![project creation wizard](./description_images/project_creation.png)
  
@@ -193,8 +194,7 @@ That 'should' work. Try it out, and try to break it. All good? Commit and push, 
 * Add up and down movement in the same way you did left/right
 * Add changing the distance from the camera to the character using scroll wheel. 
 
-
-Commit, push, and give yourself a pat on the on back. It might not seem like much, but you've gotten some translation and rotation under your belt, and you have a couple of things that work. Now, on to the main event. Or a detour, whichever you choose
+Commit, push, and give yourself a pat on the on back. It might not seem like much, but you've gotten some translation and rotation under your belt, and you have a couple of things that work. Now, on to the main event. Or a detour, whichever you choose.
 
 ## Bonus chapter
 
@@ -273,10 +273,11 @@ Make a scriptfile, and add an enum `BlockType` with two members, `Empty`and `Bed
 
 Create a class called `Chunk`. Implement the following fields for the `Chunk`:
 
-* `int2 chunkCoordinate` this has nothing to do with float coordinates or transforms. This is the coordinates in our ChunkGrid.
+* `int2 chunkCoordinate` this has nothing to do with float coordinates or transforms. This is the coordinates in our ChunkGrid. We don't necessarily need these coordinates for our features, but they can be very handy when we're trying to debug
+  
 * `BlockType[][][] blocks` this 3 dimensional array holds all of our blocks
 
-Now, let's finally get to rendering. We'll start by rendering a block.
+Now, let's finally get to rendering. We'll start by rendering a single block.
 
 * First, we need some test data. Set the block at [0,0,0] to type `Bedrock`. Leave the rest as `Empty`.
 * We need also need a GameObject, Mesh, MeshFilter and Material. The easiest way is to add a GameObject with a Prefab, such as a Cube, and overwrite the Mesh with your new one
@@ -291,7 +292,7 @@ Pat yourself on the back. You've made the quintessential minecraft primitive. Ma
 Now, we could render our entire world by using a GameObject with a cube mesh for each block. However, this is a bad idea. We would end up with millions of `GameObject`, which will be bad for performance. We'll see much better performance if we batch all of our blocks in a chunk in a single `Mesh`. So let's do that.
 
 * Generalize your mesh generation by looping through all the elements in the blocks array. You will need to have a triple loop.
-* Create an empty ArrayList (or other collection you think is appropriate) of vertices and indices.
+* Create an empty `ArrayList` (or other collection you think is appropriate) of vertices and indices.
 * Whenever you encounter a Bedrock block, generate the vertices and indices for a block. Set the positions of the vertices to the blocks place in `chunk space`:
     * A block at position [0, 0, 0]  will have it's smallest vertices be (0.0f, 0.0f, 0.0f) and it's largest (1.0f, 1.0f, 1.0f)
     * A block at position [2, 5, 3]  will have it's smallest vertices be (2.0f, 5.0f, 3.0f) and it's largest (3.0f, 6.0f, 3.0f)
@@ -334,13 +335,20 @@ Change the generation of the stone layer to be plausible (looks like something r
 * Create a function that takes a world coordinate in XY (this is the coordinate of the column where we want to determine how high the stone layer goes). It will return the height of the stone layer as a single float, in world space
 * Once you have your stone layer height, you can set all your blocks in that column to stone
 * You can use fBm for this, but it's not mandatory
-* You can layer several functions to more interesting results. An example would be these two functioos : [Bias & Gain](http://demofox.org/biasgain.html). Make sure to play with their parameter and check the result on the left. They can be used to push up/down/towards the middle any singular float value. You might have to remap your input value (eg your stone layer goes from 1 - 32) to (0-1) to use these functions, but you can remap them back after you called them.
+* You can layer several functions to more interesting results. An example would be these two functions : [Bias & Gain](http://demofox.org/biasgain.html). Make sure to play with their parameter and check the result on the left. They can be used to push up/down/towards the middle any singular float value. You might have to remap your input value (eg your stone layer goes from 1 - 32) to (0-1) to use these functions, but you can remap them back after you called them.
 
 The description is intentionally vague, and so are the requirements. There's a million ways to generate terrain procedurally, and it's fun to figure out what works and what doesn't. If you're feeling lost, I encourage you to look at the tutorials linked in the hints section. Remember: you can use all the mathematical functions you know, just for the way they "look" when you plot them. If you're looking regular bumps, sin() might be what you're looking for, no matter what sin() actually does. Think about it visually. If this seems daunting, check out [this tutorial](https://youtu.be/Q16audEXrcI?list=PLVsTSlfj0qsWEJ-5eMtXsYp03Y9yF1dEn).
 
 Do the same for `Dirt`: add a layer on top of the stone, make sure it's interesting. There should be parts of the world with a thicker layer of dirt, and some parts where the stone surfaces and there is no dirt.
 
-Once you're satisfied with your result, you're ready to move on. 
+Once you're satisfied with your result, you're ready to move on to shading.
+
+### Shading
+
+Our dirt and stone shaders are pretty basic now, so let's improve them.
+
+1 Look for appropriate textures online. Make sure that the license allows you to use them, and attribute them in the text file. Alternatively, make your own.
+2 Create the texture you want to sample. I think it's easiest to use a TextureCube, because you can create the sampling coordinate as the vector from the point you're shading, to the center of the block. But you can try and use a Texture2D with all six size as well, with some extra math to create the coordinate. !!! Do not use a 'texture atlas'. A texture atlas encode's all textures into a texture 2D. This is an oldschool method to pack several textures into one texture. In this project, it isn't needed. And if it would be, we could use a feature called texture arrays, which are faster. !!!
 
 ### Multiple chunks
 
@@ -367,17 +375,17 @@ This should ensure that you always see a lot of terrain, without running out of 
 
 ### Mesh generation optimization
 
-You might have noticed it takes a while to generate a chunk's mesh, or that the frame rate goes down a lot when you've loading in a bunch of chunks. The reason is that we're generating a ton of triangles that will never be visible.
+You might have noticed it takes a while to generate a chunk's mesh, or that the frame rate goes down a lot when you've loading in a bunch of chunks. The reason is that we're generating a ton of triangles that will never be visible. In fact, mort of our triangles will never be visible, as they are between two blocks.
 
 For example: let's look at some blocks from the top
 
-XXX
-X0X
-XXX 
+    XXX
+    X0X
+    XXX 
 
-This is a 2D slice, but imagine the block 0 is surrounded on all sides by other blocks. We will never be able to see it, so there's no point in generating any triangles to represent it. In fact, imagine we have two blocks next to eachother:
+This is a 2D slice, but imagine the block 0 is surrounded on all sides by other blocks. We will never be able to see it, so there's no point in generating any triangles to represent it. Even simpler, imagine we have two blocks next to eachother:
 
-X|X
+    X|X
 
 Where | is the square generated between the two X blocks. We do not need to create this square; it will be between two solid blocks.
 
@@ -388,9 +396,106 @@ Modify your mesh generation routine to skip invisible squares. The algorithm is 
 
 Take a note of the speedup you get. Optimization can be quite motivating when you see the advantages.
 
+## Water
+
+Our world is a bit dry, so let's add some water.
+
+### Geometry
+Create a new function called 'generateTesselatedPlane'. This function should create a plane (rectangle). It should be *tesselated*, which means that it should be composed out of more squares/triangles than you strictly need for a flat surface. Make sure the function takes two parameters (x squares, y squares). For example, if you have 3 squares in the x direction, and 2 squares in the y direction.
+
+Once you have your plane, create one for each chunk you make. Make sure it's at the same height for each chunk.
+
+![Water Plane](./description_images/water_plane.png)
+
+### Vertex shader
+
+Add some animation to the vertex. Animation means the position changes over time. An example would be using `sin(x)`, but adding time to the argument x. This would be `sin(x+t)`. If you change your vertex hight by the return value, you should see waves moving with time. You'll also notice it's uninteresting: each wave is the same height, and there's no variation over the width of an individual wave. 
+
+![Sine wave](./description_images/sin3d.png)
+
+Implement a more complicated function to move your vertex, that at least isn't constant in one dimension.
+
+Once you've done that, you're faced with one last hurdle. The normals in your vertices don't magically change when you animate the vertex position. You're going to have to recalculate the normal, and the easiest way to do it is finite differencing.
+
+Say your function to calculate the height is `f(x, y)`. Construct 3 points 
+
+A = (x, y, f(x, y))
+B = (x+e, y, f(x+e, y))
+C = (x, y+e, f(x, y+e))
+
+These are three point on the surface of your function, so you can construct your normal using these 3 points.
+
+### Pixel Shader
+
+We're going to implement a water shader. Water is distinctive by having three components. A reflective component, which basically acts like a mirror. A refractive component, which is looking through the water. And a weight to decide how much each of the two contributes to the final color.
+
+Look at the following image. The color of the water is both the bottom of the lake (rocks), as well as the color of the sky. The graph below sketches the effect.
+
+![Water in the real world](./description_images/water.png)
+
+![Water diagram](./description_images/water_rr.png)
+
+Note that 'incident' is a fancy way of saying 'incoming'. 
+
+Anyway, let's get to work. 
+
+#### Reflection
+
+Reflection is a hard problem in games. That's why you see relatively few mirror or reflective surfaces. We're also going to cheat a bit. We're not going to reflect our actual chunks, we're going to use a very simple technique.
+
+First, look for a skybox texture online that you can use. It doesn't matter if it's fitting for minecraft, it can be a space scene. Just make sure you're allowed to use it according to the license. Also make sure that it's a cube texture. Or, if it's 6 separate textures, that you can make a cube out of it.
+
+Set it up as the skybox of your scene: [documentation](https://docs.unity3d.com/Manual/skyboxes-using.html). Don't add the directional light as the guide says.
+
+Now, in your shader, sample your cube texture with the reflected view ray. 
+
+The view ray is the forward direction of the camera. To reflect, we need another vector to reflect over. This is the normal we calculated in our vertex shader. To do the actual reflection, we can use the 'reflect' function, which takes two arguments: the vector to reflect, and the one to reflect over.
+
+Put it all together, and your water should look like a perfect mirror of the sky. 
+
+#### Refraction
+
+Refraction usually bends the object under the surface of the water. 
+
+![Straw](./description_images/straw.jpg)
+
+We're going to implement that by using the oldest trick in the book: ignoring it. We're not going to bend what's beneath the water.
+
+We do need to show it though. This is relative simply: all we need to do is turn our material transparent. 
+
+Set the 'render mode' of your material to transparent. Now, when you write to the color in your pixel shader, you can set the alpha. You might have noticed that the output color of your pixel shader has four components. The first three are `r`, `g`, and `b`, as you know and love. The final one is `a`, which determines how transparent your pixels will be. Set it first to 0.5 to check that your material is actually transparent. 
+
+#### Combining
+
+Time to combine both refraction and reflection
+
+Look again at our reference image: ![water](./description_images/water.png)
+
+Notice the further away, the more the water becomes reflective. The closer to the camera, the water starts getting more transparent(refractive)
+
+The difference is the relationship of the camera forward vector and the surface of the water. In the distance, our view vector is almost parallel to the surface of the water. Closeby, we're looking down on the surface, and the water is transparent.
+
+![](./description_images/water_rr.png)
+
+We have a trusty tool in our belt for seeing how close together two vector are: the dot product. Use the dot product to calculate how parallel the view vector is to the surface of the water, and blend appropriately between reflective and refractive color.
+
+## Portal
+
+![Portal](./description_images/portal.jpg)
+
+A portal in minecraft is defined as rectangle of 4x5 blocks, made in  obsidian.
+
+The center doesn't have any blocks, but has a shimmering purple plane.
+
+Your job:
+* Every multiple of 10 chunks, add a portal to the chunk. Eg the chunks at (0,0), (10, 0), (0, 10), and (10, 10) all should have a portal, and the portal should sit mostly correctly on the terrain (the portal is on top of the terrain, and the center is not obscured by blocks),
+* Create a new lit material for the obsidian blocks. Use procedural generation to generate a heightmap, and use finite differencing to turn this into your normals. The color can be anything you want. 
+* Create geometry and material for the center of the portal. How you do this is completely free, just make sure the effect is interesting. Remember, you have a method to create a plane. You must use at least one custom shader. Spend at least an hour on this.
+
+Commit, and push. Don't forget to check that your 
+
 ## Hints
 
-* You probably want to use the camera you implemented in the first lab
 * Your IDE has a shortcut to automatically format code. Please run it at least before your final commit, preferably more often.
 * Git is not just a source control, it's also a backup. Commit and push every time you stop working, even if your code doesn't compile.
 * Seek extra information online. Minecraft and especially Unity are very popular, so there's an avalanche of existing material out.
@@ -403,7 +508,11 @@ Take a note of the speedup you get. Optimization can be quite motivating when yo
 
 ## Version list
 
-0.0.4 Images and typo fixes for chunk generation
-0.0.3 Add first bonus chapter
-0.0.2 Add 3rd person camera
-0.0.1 Initial versions
+* 0.1.0 Portal
+* 0.0.7 Water
+* 0.0.6 Remove outdated information
+* 0.0.5 Add water
+* 0.0.4 Images and typo fixes for chunk generation
+* 0.0.3 Add first bonus chapter
+* 0.0.2 Add 3rd person camera
+* 0.0.1 Initial versions
