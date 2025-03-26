@@ -22,12 +22,15 @@ public class Chunk : MonoBehaviour
     private MeshFilter meshFilter; //holds the geometry of the mesh
     private MeshRenderer meshRenderer; //renders the mesh
     private Mesh mesh; //the mesh itself lol
+    private Mesh portalMesh; //mesh for the portal blocks
 
     private Material bedrockMaterial;
     private Material stoneMaterial;
     private Material dirtMaterial;
     private Material grassSideMaterial;
     private Material grassTopMaterial;
+    private Material obsidianMaterial;
+    private Material portalCoreMaterial;
 
     private void Start()
     {
@@ -177,11 +180,69 @@ public class Chunk : MonoBehaviour
             }
         }
 
-
+        GeneratePortal();
 
         isInitialized = true;
     }
 
+
+    public void GeneratePortal()
+    {
+        if (terrainGenerator.ShouldGeneratePortal(chunkCoordinate))
+        {
+            Vector2 portalLocation = terrainGenerator.GetPortalLocationInChunk(chunkCoordinate);
+            int portalX = Mathf.FloorToInt(portalLocation.x);
+            int portalZ = Mathf.FloorToInt(portalLocation.y);
+
+            // Find the highest terrain point at this location
+            int portalY = 0;
+            for (int y = CHUNK_SIZE_Y - 1; y >= 0; y--)
+            {
+                if (blocks[portalX, y, portalZ] != BlockType.Air)
+                {
+                    portalY = y + 1;
+                    break;
+                }
+            }
+
+            // Create 4x5 portal frame of obsidian
+            for (int x = portalX - 1; x <= portalX + 2; x++)
+            {
+                for (int y = portalY; y < portalY + 5; y++)
+                {
+                    for (int z = portalZ - 1; z <= portalZ + 2; z++)
+                    {
+                        // Check if this is a frame block
+                        if (x == portalX - 1 || x == portalX + 2 ||
+                            z == portalZ - 1 || z == portalZ + 2 ||
+                            y == portalY || y == portalY + 4)
+                        {
+                            // Ensure we're within chunk bounds
+                            if (x >= 0 && x < CHUNK_SIZE_X &&
+                                y >= 0 && y < CHUNK_SIZE_Y &&
+                                z >= 0 && z < CHUNK_SIZE_Z)
+                            {
+                                blocks[x, y, z] = BlockType.Obsidian;
+                            }
+                        }
+
+                        // Create portal core
+                        if (x > portalX - 1 && x < portalX + 2 &&
+                            z > portalZ - 1 && z < portalZ + 2 &&
+                            y > portalY && y < portalY + 4)
+                        {
+                            if (x >= 0 && x < CHUNK_SIZE_X &&
+                                y >= 0 && y < CHUNK_SIZE_Y &&
+                                z >= 0 && z < CHUNK_SIZE_Z)
+                            {
+                                blocks[x, y, z] = BlockType.PortalCore;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
 
 
     public void GenerateMesh()
@@ -205,14 +266,19 @@ public class Chunk : MonoBehaviour
         dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
+        obsidianMaterial = new Material(Shader.Find("Unlit/Texture"));
+        portalCoreMaterial = new Material(Shader.Find("Custom/PortalCoreShader"));
+
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("proper_stone");
         Texture2D dirtTexture = Resources.Load<Texture2D>("proper_dirt");
         Texture2D grassSideTexture = Resources.Load<Texture2D>("proper_grass_side");
         Texture2D grassTopTexture = Resources.Load<Texture2D>("proper_grass_top");
+        Texture2D obsidianTexture = Resources.Load<Texture2D>("obsidian");
 
-        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null | grassSideTexture == null || grassTopTexture == null)
+
+        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null | grassSideTexture == null || grassTopTexture == null || obsidianTexture == null)
         {
             Debug.LogError("Failed to load textures!");
         }
@@ -223,10 +289,12 @@ public class Chunk : MonoBehaviour
             dirtMaterial.mainTexture = dirtTexture;
             grassSideMaterial.mainTexture = grassSideTexture;
             grassTopMaterial.mainTexture = grassTopTexture;
+            obsidianMaterial.mainTexture = obsidianTexture;
         }
 
 
         mesh = new Mesh();
+        portalMesh = new Mesh();
         //added this because of that issue with rightmost blocks on some chunks not rendering properly; turns out I had too many vertices
         //to be rendered on each chunk, so I had to increase the max amount of vertices on each chunk
         mesh.indexFormat = UnityEngine.Rendering.IndexFormat.UInt32;
@@ -238,7 +306,12 @@ public class Chunk : MonoBehaviour
         List<int> trianglesDirt = new List<int>();
         List<int> trianglesGrassSide = new List<int>();
         List<int> trianglesGrassTop = new List<int>();
+        List<int> trianglesObsidian = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
+
+        List<int> trianglesPortalCore = new List<int>();
+        List<Vector2> portalUVs = new List<Vector2>();
+        List<Vector3> portalVertices = new List<Vector3>();
 
         int vertexOffset = 0;
 
@@ -264,23 +337,49 @@ public class Chunk : MonoBehaviour
                     {
                         AddGrassBlockMesh(x, y, z, verticesList, trianglesGrassSide, trianglesGrassTop, trianglesDirt, uvsList, ref vertexOffset);
                     }
+                    else if (blocks[x, y, z] == BlockType.Obsidian)
+                    {
+                        AddBlockMesh(x, y, z, verticesList, trianglesObsidian, uvsList, ref vertexOffset);
+                    }
+                    else if (blocks[x, y, z] == BlockType.PortalCore)
+                    {
+                        AddBlockMesh(x, y, z, verticesList, trianglesPortalCore, portalUVs, ref vertexOffset);
+                    }
+
                 }
             }
         }
 
         mesh.vertices = verticesList.ToArray();
-        mesh.subMeshCount = 5; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces)
+        mesh.subMeshCount = 6; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces)
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
         mesh.SetTriangles(trianglesDirt.ToArray(), 2);    // Third for dirt
         mesh.SetTriangles(trianglesGrassSide.ToArray(), 3); // Fourth for grass side
         mesh.SetTriangles(trianglesGrassTop.ToArray(), 4); // Fifth for grass top
+        mesh.SetTriangles(trianglesObsidian.ToArray(), 5); // Sixth for obsidian
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 
         // Assign all materials to the renderer
-        Material[] materials = new Material[5] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial };
+        Material[] materials = new Material[6] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial };
         meshRenderer.materials = materials;
+
+        //portal core creation
+        GameObject portalObj = new GameObject("PortalCoreBlocks");
+        portalObj.transform.SetParent(transform);
+        portalObj.AddComponent<MeshFilter>();
+        MeshRenderer portalRenderer = portalObj.AddComponent<MeshRenderer>();
+
+        //assign portal shader
+        Material portalMaterial = new Material(Shader.Find("Custom/PortalCoreShader"));
+        portalRenderer.material = portalMaterial;
+
+        portalMesh.vertices = portalVertices.ToArray();
+        portalMesh.triangles = trianglesPortalCore.ToArray();
+        portalMesh.uv = portalUVs.ToArray();
+        portalMesh.RecalculateNormals();
+        portalObj.GetComponent<MeshFilter>().mesh = portalMesh;
     }
 
 

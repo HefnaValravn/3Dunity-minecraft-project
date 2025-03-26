@@ -1,4 +1,6 @@
+using Unity.Mathematics;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 public class TerrainGenerator : MonoBehaviour
 {
@@ -40,6 +42,10 @@ public class TerrainGenerator : MonoBehaviour
     public float caveEntranceThreshold = 0.75f;
 
 
+    [Header("Portal Settings")]
+    public int portalSeed = 0;
+
+
     // Initialize with a random seed if not set
     private void Awake()
     {
@@ -54,6 +60,38 @@ public class TerrainGenerator : MonoBehaviour
             caveSeed = Random.Range(1, 100000);
             Debug.Log($"Using random cave seed: {caveSeed}");
         }
+
+        if (portalSeed == 0)
+        {
+            portalSeed = Random.Range(1, 100000);
+            Debug.Log($"Using random portal seed:  {portalSeed}");
+        }
+    }
+
+    public bool ShouldGeneratePortal(int2 chunkCoordinate)
+    {
+        // Generate portal at every multiple of 10 chunks
+        return chunkCoordinate.x % 10 == 0 &&
+               chunkCoordinate.y % 10 == 0;
+    }
+
+    public Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
+    {
+        // Use consistent pseudo-random generation based on chunk coordinates
+        float randomX = Mathf.PerlinNoise(
+            (chunkCoordinate.x * 0.1f) + portalSeed,
+            (chunkCoordinate.y * 0.1f) + portalSeed
+        ) * Chunk.CHUNK_SIZE_X;
+
+        float randomZ = Mathf.PerlinNoise(
+            (chunkCoordinate.x * 0.1f) + portalSeed + 100,
+            (chunkCoordinate.y * 0.1f) + portalSeed + 100
+        ) * Chunk.CHUNK_SIZE_Z;
+
+        return new Vector2(
+            Mathf.Clamp(randomX, 4, Chunk.CHUNK_SIZE_X - 4),
+            Mathf.Clamp(randomZ, 4, Chunk.CHUNK_SIZE_Z - 4)
+        );
     }
 
     // Get terrain height at any world position

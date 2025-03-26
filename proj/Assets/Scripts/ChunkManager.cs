@@ -23,6 +23,8 @@ public class ChunkManager : MonoBehaviour
     private List<int2> prioritizedChunks = new List<int2>(); //direction based loading
 
 
+    public Material portalCoreMaterial;
+
     void Start()
     {
         // Create terrain generator if not assigned
@@ -31,7 +33,12 @@ public class ChunkManager : MonoBehaviour
             terrainGenerator = gameObject.AddComponent<TerrainGenerator>();
             Debug.Log("TerrainGenerator component created");
         }
-        
+
+        if (portalCoreMaterial == null)
+        {
+            portalCoreMaterial = new Material(Shader.Find("Custom/PortalCoreShader"));
+        }
+
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
         UpdateActiveCamera();
@@ -114,33 +121,34 @@ public class ChunkManager : MonoBehaviour
 
     private void PrioritizeChunksByViewDirection(HashSet<int2> requiredChunks)
     {
-         // Clear the previous prioritized list
+        // Clear the previous prioritized list
         prioritizedChunks.Clear();
-        
+
         // Add all required chunks to the prioritized list
         prioritizedChunks.AddRange(requiredChunks);
-        
+
         // Get view direction as a 2D vector (xz plane)
         Vector3 viewDir = activeCamera.transform.forward;
         Vector2 viewDir2D = new Vector2(viewDir.x, viewDir.z).normalized;
-        
+
         // Get player position
         Vector3 playerPos = player.position;
-        
+
         // Sort chunks by relevance to the player's view direction
-        prioritizedChunks.Sort((a, b) => {
+        prioritizedChunks.Sort((a, b) =>
+        {
             // Calculate center positions of chunks
-            Vector2 aCenter = new Vector2((a.x * chunkSize) + (chunkSize/2), (a.y * chunkSize) + (chunkSize/2));
-            Vector2 bCenter = new Vector2((b.x * chunkSize) + (chunkSize/2), (b.y * chunkSize) + (chunkSize/2));
-            
+            Vector2 aCenter = new Vector2((a.x * chunkSize) + (chunkSize / 2), (a.y * chunkSize) + (chunkSize / 2));
+            Vector2 bCenter = new Vector2((b.x * chunkSize) + (chunkSize / 2), (b.y * chunkSize) + (chunkSize / 2));
+
             // Calculate direction vectors from player to chunk centers
             Vector2 aDir = new Vector2(aCenter.x - playerPos.x, aCenter.y - playerPos.z).normalized;
             Vector2 bDir = new Vector2(bCenter.x - playerPos.x, bCenter.y - playerPos.z).normalized;
-            
+
             // Calculate dot product to determine alignment with view direction
             float aDot = Vector2.Dot(viewDir2D, aDir);
             float bDot = Vector2.Dot(viewDir2D, bDir);
-            
+
             // Sort by dot product (higher means more aligned with view direction)
             return bDot.CompareTo(aDot);
         });
@@ -151,9 +159,9 @@ public class ChunkManager : MonoBehaviour
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {
         Plane[] planes = GeometryUtility.CalculateFrustumPlanes(activeCamera);
-        Bounds chunkBounds = new Bounds(new Vector3(chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X/2, 
-                      Chunk.CHUNK_SIZE_Y/2, 
-                      chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z/2), 
+        Bounds chunkBounds = new Bounds(new Vector3(chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X / 2,
+                      Chunk.CHUNK_SIZE_Y / 2,
+                      chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z / 2),
             new Vector3(Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Y, Chunk.CHUNK_SIZE_Z)
         );
 
