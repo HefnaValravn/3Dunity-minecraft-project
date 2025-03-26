@@ -1,0 +1,13 @@
+The tile blocks are created by me with a pixel art creator.
+
+The head of the player was obtained from:
+
+https://www.minecraftskins.com/terms-and-conditions/
+
+location:
+'/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/Resources/fin head.png'
+
+and 
+
+'/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/Resources/fin.png'
+

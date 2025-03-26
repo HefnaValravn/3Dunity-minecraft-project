@@ -206,11 +206,11 @@ public class Chunk : MonoBehaviour
         grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
 
-        Texture2D bedrockTexture = Resources.Load<Texture2D>("bedrock");
-        Texture2D stoneTexture = Resources.Load<Texture2D>("stone");
-        Texture2D dirtTexture = Resources.Load<Texture2D>("dirt");
-        Texture2D grassSideTexture = Resources.Load<Texture2D>("gud_grass_side");
-        Texture2D grassTopTexture = Resources.Load<Texture2D>("gud_grass_top");
+        Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
+        Texture2D stoneTexture = Resources.Load<Texture2D>("proper_stone");
+        Texture2D dirtTexture = Resources.Load<Texture2D>("proper_dirt");
+        Texture2D grassSideTexture = Resources.Load<Texture2D>("proper_grass_side");
+        Texture2D grassTopTexture = Resources.Load<Texture2D>("proper_grass_top");
 
         if (bedrockTexture == null || stoneTexture == null || dirtTexture == null | grassSideTexture == null || grassTopTexture == null)
         {
