@@ -161,6 +161,7 @@ MonoBehaviour:
   caveLacunarity: 2
   caveSeed: 0
   caveEntranceThreshold: 0.75
+  portalSeed: 0
 --- !u!4 &130113486
 Transform:
   m_ObjectHideFlags: 0
@@ -924,6 +925,7 @@ MonoBehaviour:
   viewDistance: 3
   prioritizeViewDirection: 1
   terrainGenerator: {fileID: 130113485}
+  portalCoreMaterial: {fileID: 0}
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0
@@ -966,7 +968,7 @@ Transform:
   m_GameObject: {fileID: 1372197567}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 14, y: 62, z: -25}
+  m_LocalPosition: {x: 14, y: 68.7, z: -25}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
