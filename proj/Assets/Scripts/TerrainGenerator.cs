@@ -75,53 +75,6 @@ public class TerrainGenerator : MonoBehaviour
                chunkCoordinate.y % 10 == 0;
     }
 
-    public Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
-    {
-        for (int x = 4; x < Chunk.CHUNK_SIZE_X - 4; x++)
-        {
-            for (int z = 4; z < Chunk.CHUNK_SIZE_Z - 4; z++)
-            {
-            int terrainHeight = GetTerrainHeight(chunkCoordinate.x * Chunk.CHUNK_SIZE_X + x, chunkCoordinate.y * Chunk.CHUNK_SIZE_Z + z);
-
-            bool isFlat = true;
-            bool isAboveGround = true;
-
-            // Check a larger 7x7 area around the portal location
-            for (int dx = -3; dx <= 3; dx++)
-            {
-                for (int dz = -3; dz <= 3; dz++)
-                {
-                int neighborHeight = GetTerrainHeight(chunkCoordinate.x * Chunk.CHUNK_SIZE_X + x + dx, chunkCoordinate.y * Chunk.CHUNK_SIZE_Z + z + dz);
-                if (Mathf.Abs(terrainHeight - neighborHeight) > 0) // Tighten height difference threshold to 0
-                {
-                    isFlat = false;
-                    break;
-                }
-                }
-                if (!isFlat)
-                break;
-            }
-
-            // Ensure the portal base is not inside the ground
-            if (terrainHeight < Chunk.CHUNK_SIZE_Y - 1 && terrainHeight > GetBedrockHeight(chunkCoordinate.x * Chunk.CHUNK_SIZE_X + x, chunkCoordinate.y * Chunk.CHUNK_SIZE_Z + z) + 1)
-            {
-                isAboveGround = true;
-            }
-            else
-            {
-                isAboveGround = false;
-            }
-
-            if (isFlat && isAboveGround)
-            {
-                return new Vector2(x, z);
-            }
-            }
-        }
-
-        // Fallback to center if no flat surface is found
-        return new Vector2(Chunk.CHUNK_SIZE_X / 2, Chunk.CHUNK_SIZE_Z / 2);
-    }
 
     // Get terrain height at any world position
     public int GetTerrainHeight(float worldX, float worldZ)

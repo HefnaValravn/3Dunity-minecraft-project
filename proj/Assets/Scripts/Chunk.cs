@@ -186,12 +186,116 @@ public class Chunk : MonoBehaviour
     }
 
 
+    private Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
+    {
+        // Start from 10 blocks below the top to avoid checking empty air space
+        int startY = Mathf.Min(CHUNK_SIZE_Y - 10, CHUNK_SIZE_Y - 1);
+
+        // Add debugging to track progress
+        int candidatesChecked = 0;
+        int flatAreasFound = 0;
+
+        for (int y = startY; y >= 1; y--) // Start at 1 to avoid checking y-1 < 0
+        {
+            for (int x = 6; x < CHUNK_SIZE_X - 7; x++)
+            {
+                for (int z = 6; z < CHUNK_SIZE_Z - 7; z++)
+                {
+                    candidatesChecked++;
+
+                    // Skip if this isn't even a grass block
+                    if (blocks[x, y, z] != BlockType.Grass)
+                        continue;
+
+                    bool isFlatGrassPatch = true;
+
+                    // Check 2x4 area for grass blocks
+                    for (int dx = 0; dx < 2 && isFlatGrassPatch; dx++)
+                    {
+                        for (int dz = 0; dz < 4 && isFlatGrassPatch; dz++)
+                        {
+                            // Ensure all blocks are grass at the same height
+                            if (blocks[x + dx, y, z + dz] != BlockType.Grass)
+                            {
+                                isFlatGrassPatch = false;
+                            }
+                        }
+                    }
+
+                    // If we found a flat area, check surroundings with additional safeguards
+                    if (isFlatGrassPatch)
+                    {
+                        flatAreasFound++;
+                        bool surroundingsValid = true;
+
+                        // Ensure blocks below are solid
+                        for (int dx = 0; dx < 2 && surroundingsValid; dx++)
+                        {
+                            for (int dz = 0; dz < 4 && surroundingsValid; dz++)
+                            {
+                                if (y > 0 && !IsBlockSolid(x + dx, y - 1, z + dz))
+                                {
+                                    surroundingsValid = false;
+                                }
+                            }
+                        }
+
+                        // Ensure there's space above (no blocks in the way)
+                        if (surroundingsValid)
+                        {
+                            for (int dx = 0; dx < 2 && surroundingsValid; dx++)
+                            {
+                                for (int dz = 0; dz < 4 && surroundingsValid; dz++)
+                                {
+                                    for (int h = 1; h <= 5 && surroundingsValid; h++) // Check 5 blocks high
+                                    {
+                                        if (y + h < CHUNK_SIZE_Y && IsBlockSolid(x + dx, y + h, z + dz))
+                                        {
+                                            surroundingsValid = false;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // If surroundings are valid, we've found our spot!
+                        if (surroundingsValid)
+                        {
+                            Debug.Log($"Found portal location at ({x},{y},{z}) after checking {candidatesChecked} candidates and {flatAreasFound} flat areas");
+                            return new Vector2(x, z);
+                        }
+                    }
+                }
+            }
+        }
+
+        Debug.LogWarning($"No suitable portal location found in chunk {chunkCoordinate.x},{chunkCoordinate.y} after checking {candidatesChecked} candidates and {flatAreasFound} flat areas");
+
+        // As a fallback, place portal at center of chunk if possible
+        int centerX = CHUNK_SIZE_X / 2;
+        int centerZ = CHUNK_SIZE_Z / 2;
+
+        // Try to find suitable Y for center placement
+        for (int y = startY; y >= 1; y--)
+        {
+            if (blocks[centerX, y, centerZ] == BlockType.Grass)
+            {
+                Debug.Log($"Using fallback portal location at center: ({centerX},{y},{centerZ})");
+                return new Vector2(centerX, centerZ);
+            }
+        }
+
+        // If all else fails, return center anyway
+        return new Vector2(CHUNK_SIZE_X / 2, CHUNK_SIZE_Z / 2);
+    }
+
+
     public void GeneratePortal()
     {
         if (terrainGenerator.ShouldGeneratePortal(chunkCoordinate))
         {
             Debug.Log($"Portal generation started in chunk {chunkCoordinate.x},{chunkCoordinate.y}");
-            Vector2 portalLocation = terrainGenerator.GetPortalLocationInChunk(chunkCoordinate);
+            Vector2 portalLocation = GetPortalLocationInChunk(chunkCoordinate);
             int portalX = Mathf.FloorToInt(portalLocation.x);
             int portalZ = Mathf.FloorToInt(portalLocation.y);
             Debug.Log($"Portal location: X={portalX}, Z={portalZ}");
@@ -221,7 +325,7 @@ public class Chunk : MonoBehaviour
                         y == portalY || y == portalY + 4)
                         {
                             blocks[x, y, z] = BlockType.Obsidian;
-                            Debug.Log($"Set obsidian at {x},{y},{z}");   
+                            Debug.Log($"Set obsidian at {x},{y},{z}");
                         }
 
                         // Create portal core
