@@ -1,6 +1,9 @@
 using Unity.Mathematics;
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
+using UnityEngine.Video;
+using Unity.VisualScripting;
 
 
 public class Chunk : MonoBehaviour
@@ -415,33 +418,163 @@ public class Chunk : MonoBehaviour
             {
                 for (int y = portalY; y < portalY + 5; y++)
                 {
-                    for (int z = portalZ - 1; z <= portalZ - 1; z++)
+                    // Z-loop is fixed to only iterate over the single Z-plane
+                    int z = portalZ;
+
+                    // Check if we're within chunk bounds first
+                    if (x < 0 || x >= CHUNK_SIZE_X ||
+                        y < 0 || y >= CHUNK_SIZE_Y ||
+                        z < 0 || z >= CHUNK_SIZE_Z)
                     {
+                        continue; // Skip this block if it's outside the chunk
+                    }
 
-                        // Check if we're within chunk bounds first
-                        if (x < 0 || x >= CHUNK_SIZE_X ||
-                            y < 0 || y >= CHUNK_SIZE_Y ||
-                            z < 0 || z >= CHUNK_SIZE_Z)
-                        {
-                            continue; // Skip this block if it's outside the chunk
-                        }
-
-                        // Check if this is a frame block
-                        if (x == portalX - 1 || x == portalX + 2 ||
-                        y == portalY || y == portalY + 4)
-                        {
-                            blocks[x, y, z] = BlockType.Obsidian;
-                            Debug.Log($"Set obsidian at {x},{y},{z}");
-                        }
-
-                        // Create portal core
-                        else if (x > portalX - 1 && x < portalX + 2 && y > portalY && y < portalY + 4)
-                        {
-                            blocks[x, y, z] = BlockType.PortalCore;
-                        }
+                    // Check if this is a frame block
+                    if (x == portalX - 1 || x == portalX + 2 || // Left and right frame
+                        y == portalY || y == portalY + 4)       // Top and bottom frame
+                    {
+                        blocks[x, y, z] = BlockType.Obsidian;
+                        Debug.Log($"Set obsidian at {x},{y},{z}");
+                    }
+                    // Create portal core - only within the frame
+                    else if (x > portalX - 1 && x < portalX + 2 &&
+                             y > portalY && y < portalY + 4)
+                    {
+                        blocks[x, y, z] = BlockType.PortalCore;
+                        Debug.Log($"Set portal core at {x},{y},{z}");
                     }
                 }
             }
+        }
+    }
+
+    private void GeneratePortalPlane()
+    {
+        // First find all portal core locations
+        List<Vector3Int> portalCoreLocations = new List<Vector3Int>();
+
+        for (int x = 0; x < CHUNK_SIZE_X; x++)
+        {
+            for (int y = 0; y < CHUNK_SIZE_Y; y++)
+            {
+                for (int z = 0; z < CHUNK_SIZE_Z; z++)
+                {
+                    if (blocks[x, y, z] == BlockType.PortalCore)
+                    {
+                        // We found a portal block
+                        portalCoreLocations.Add(new Vector3Int(x, y, z));
+                        // Set the block to Air so it doesn't get rendered in the main mesh
+                        blocks[x, y, z] = BlockType.Air;
+                    }
+                }
+            }
+        }
+
+        if (portalCoreLocations.Count == 0)
+            return;
+
+        // Group portal core blocks by Z coordinate (assuming portal faces Z direction)
+        var portalsGroupedByZ = portalCoreLocations.GroupBy(pos => pos.z);
+
+        foreach (var portalGroup in portalsGroupedByZ)
+        {
+            int portalZ = portalGroup.Key;
+
+            // Find min and max X, Y values
+            int minX = portalGroup.Min(pos => pos.x);
+            int maxX = portalGroup.Max(pos => pos.x);
+            int minY = portalGroup.Min(pos => pos.y);
+            int maxY = portalGroup.Max(pos => pos.y);
+
+            // Create a single portal plane GameObject
+            GameObject portalPlane = new GameObject("PortalPlane_" + portalZ);
+            portalPlane.transform.SetParent(transform);
+
+            // Add components
+            MeshFilter meshFilter = portalPlane.AddComponent<MeshFilter>();
+            MeshRenderer meshRenderer = portalPlane.AddComponent<MeshRenderer>();
+
+            // Create a single plane
+            Mesh planeMesh = new Mesh();
+
+            // Create vertices for a single plane
+            Vector3[] vertices = new Vector3[4];
+            // Small offset to prevent z-fighting - move slightly forward
+            float zOffset = 0.5f;
+
+            vertices[0] = new Vector3(minX, minY, portalZ + zOffset); // Bottom Left
+            vertices[1] = new Vector3(maxX + 1, minY, portalZ + zOffset); // Bottom Right
+            vertices[2] = new Vector3(maxX + 1, maxY + 1, portalZ + zOffset); // Top Right
+            vertices[3] = new Vector3(minX, maxY + 1, portalZ + zOffset); // Top Left
+
+            // Create triangles for front face
+            int[] triangles = new int[12];
+            triangles[0] = 0;
+            triangles[1] = 2;
+            triangles[2] = 1;
+            triangles[3] = 0;
+            triangles[4] = 3;
+            triangles[5] = 2;
+
+            //triangles for back face
+            triangles[6] = 1;
+            triangles[7] = 2;
+            triangles[8] = 0;
+            triangles[9] = 2;
+            triangles[10] = 3;
+            triangles[11] = 0;
+
+            // Create UVs
+            Vector2[] uvs = new Vector2[4];
+            uvs[0] = new Vector2(0, 0);
+            uvs[1] = new Vector2(1, 0);
+            uvs[2] = new Vector2(1, 1);
+            uvs[3] = new Vector2(0, 1);
+
+            // Assign to mesh
+            planeMesh.vertices = vertices;
+            planeMesh.triangles = triangles;
+            planeMesh.uv = uvs;
+            planeMesh.RecalculateNormals();
+
+            // Assign mesh and material
+            meshFilter.mesh = planeMesh;
+            meshRenderer.material = portalCoreMaterial;
+
+            // Configure the VideoPlayer
+            VideoPlayer videoPlayer = portalPlane.AddComponent<VideoPlayer>();
+            videoPlayer.playOnAwake = false; // Automatically play the video
+            videoPlayer.isLooping = true;   // Loop the video
+            videoPlayer.renderMode = VideoRenderMode.MaterialOverride; // Render video on material
+            videoPlayer.targetMaterialRenderer = meshRenderer; // Target the portal plane's renderer
+            videoPlayer.targetMaterialProperty = "_MainTex";   // Use the main texture of the material                  
+            videoPlayer.waitForFirstFrame = true;
+
+
+            AudioSource audioSource = portalPlane.AddComponent<AudioSource>();
+            audioSource.playOnAwake = false; // Prevent audio from playing before the video
+            audioSource.spatialBlend = 0;    // Set to 0 for 2D audio (non-spatialized)
+
+            // Configure the VideoPlayer to use the AudioSource
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+            videoPlayer.SetTargetAudioSource(0, audioSource);
+            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "cat.ogv");
+
+
+            videoPlayer.Prepare();
+            videoPlayer.prepareCompleted += (vp) =>
+            {
+                vp.Play();
+                vp.time = 0;
+            };
+
+            videoPlayer.loopPointReached += (vp) =>
+            {
+                vp.Stop();
+                vp.time = 0;
+                vp.Play();
+            };
+
         }
     }
 
@@ -508,7 +641,6 @@ public class Chunk : MonoBehaviour
         List<int> trianglesGrassSide = new List<int>();
         List<int> trianglesGrassTop = new List<int>();
         List<int> trianglesObsidian = new List<int>();
-        List<int> trianglesPortal = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
 
         int vertexOffset = 0;
@@ -540,30 +672,27 @@ public class Chunk : MonoBehaviour
                         AddBlockMesh(x, y, z, verticesList, trianglesObsidian, uvsList, ref vertexOffset);
                         Debug.Log($"Generating obsidian block mesh at {x},{y},{z}");
                     }
-                    else if (blocks[x, y, z] == BlockType.PortalCore)
-                    {
-                        AddBlockMesh(x, y, z, verticesList, trianglesPortal, uvsList, ref vertexOffset);
-                    }
 
                 }
             }
         }
 
         mesh.vertices = verticesList.ToArray();
-        mesh.subMeshCount = 7; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces), one for obsidian
+        mesh.subMeshCount = 6; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces), one for obsidian
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
         mesh.SetTriangles(trianglesDirt.ToArray(), 2);    // Third for dirt
         mesh.SetTriangles(trianglesGrassSide.ToArray(), 3); // Fourth for grass side
         mesh.SetTriangles(trianglesGrassTop.ToArray(), 4); // Fifth for grass top
         mesh.SetTriangles(trianglesObsidian.ToArray(), 5); // Sixth for obsidian
-        mesh.SetTriangles(trianglesPortal.ToArray(), 6); // Seventh for portal core
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 
         // Assign all materials to the renderer
-        Material[] materials = new Material[7] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial, portalCoreMaterial };
+        Material[] materials = new Material[6] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial };
         meshRenderer.materials = materials;
+
+        GeneratePortalPlane();
     }
 
 
