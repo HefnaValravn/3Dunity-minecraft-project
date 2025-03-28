@@ -1,4 +1,4 @@
-Shader "Custom/PortalCoreShader" {
+Shader "Custom/portalCore" {
     Properties {
         _MainColor ("Main Color", Color) = (0.5, 0.1, 0.8, 0.8)
         _SecondaryColor ("Secondary Color", Color) = (0.7, 0.3, 1, 0.6)

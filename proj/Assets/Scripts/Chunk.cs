@@ -185,6 +185,111 @@ public class Chunk : MonoBehaviour
         isInitialized = true;
     }
 
+    private Material CreateLitObsidianMaterial()
+    {
+        // Create a new shader for lit obsidian
+        Shader litObsidianShader = Shader.Find("Custom/litObsidian");
+        if (litObsidianShader == null)
+            litObsidianShader = Shader.Find("litObsidian");
+        Material litObsidianMaterial = new Material(litObsidianShader);
+
+        // Generate a procedural heightmap for normal generation
+        Texture2D heightMap = GenerateProceduralHeightmap(128, 128);
+
+        // Calculate normals using finite differencing
+        Texture2D normalMap = CalculateNormalsFromHeightmap(heightMap);
+
+        litObsidianMaterial.SetTexture("_HeightMap", heightMap);
+        litObsidianMaterial.SetTexture("_NormalMap", normalMap);
+        litObsidianMaterial.SetColor("_BaseColor", new Color(0.2f, 0.2f, 0.3f, 1f)); // Deep purple-blue
+        litObsidianMaterial.SetFloat("_Metallic", 0.5f);
+        litObsidianMaterial.SetFloat("_Smoothness", 0.7f);
+
+        return litObsidianMaterial;
+    }
+
+    private Texture2D GenerateProceduralHeightmap(int width, int height)
+    {
+        Texture2D heightMap = new Texture2D(width, height, TextureFormat.RFloat, false);
+
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                // Use multiple octaves of Perlin noise for more interesting terrain
+                float frequency = 4f;
+                float amplitude = 1f;
+                float noiseValue = 0f;
+
+                for (int octave = 0; octave < 4; octave++)
+                {
+                    float sampleX = x / (float)width * frequency;
+                    float sampleY = y / (float)height * frequency;
+
+                    noiseValue += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
+
+                    frequency *= 2f;
+                    amplitude *= 0.5f;
+                }
+
+                heightMap.SetPixel(x, y, new Color(noiseValue, noiseValue, noiseValue, 1f));
+            }
+        }
+
+        heightMap.Apply();
+        return heightMap;
+    }
+
+    private Texture2D CalculateNormalsFromHeightmap(Texture2D heightMap)
+    {
+        int width = heightMap.width;
+        int height = heightMap.height;
+        Texture2D normalMap = new Texture2D(width, height, TextureFormat.RGB24, false);
+
+        for (int y = 1; y < height - 1; y++)
+        {
+            for (int x = 1; x < width - 1; x++)
+            {
+                // Calculate finite differences for normal generation
+                float left = heightMap.GetPixel(x - 1, y).r;
+                float right = heightMap.GetPixel(x + 1, y).r;
+                float top = heightMap.GetPixel(x, y - 1).r;
+                float bottom = heightMap.GetPixel(x, y + 1).r;
+
+                Vector3 normal = new Vector3(left - right, bottom - top, 2f).normalized;
+
+                // Convert normal from [-1, 1] to [0, 1] color range
+                Color normalColor = new Color(
+                    (normal.x + 1f) * 0.5f,
+                    (normal.y + 1f) * 0.5f,
+                    (normal.z + 1f) * 0.5f
+                );
+
+                normalMap.SetPixel(x, y, normalColor);
+            }
+        }
+
+        normalMap.Apply();
+        return normalMap;
+    }
+
+    private Material CreatePortalCoreShader()
+    {
+        // Use the provided shader
+        Shader portalCoreShader = Shader.Find("Custom/portalCore");
+        Material portalCoreMaterial = new Material(portalCoreShader);
+
+        // Customize shader properties
+        portalCoreMaterial.SetColor("_MainColor", new Color(0.5f, 0.1f, 0.8f, 0.8f));
+        portalCoreMaterial.SetColor("_SecondaryColor", new Color(0.7f, 0.3f, 1f, 0.6f));
+        portalCoreMaterial.SetFloat("_Intensity", 1.2f);
+        portalCoreMaterial.SetFloat("_Speed", 3f);
+        portalCoreMaterial.SetFloat("_Transparency", 0.8f);
+
+        return portalCoreMaterial;
+    }
+
+
 
     private Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
     {
@@ -257,6 +362,7 @@ public class Chunk : MonoBehaviour
                                 }
                             }
                         }
+                        //no check for blocks around, only below and above. add that
 
                         // If surroundings are valid, we've found our spot!
                         if (surroundingsValid)
@@ -361,7 +467,8 @@ public class Chunk : MonoBehaviour
         dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
-        obsidianMaterial = new Material(Shader.Find("Unlit/Texture"));
+        obsidianMaterial = CreateLitObsidianMaterial();
+        portalCoreMaterial = CreatePortalCoreShader();
 
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
@@ -401,6 +508,7 @@ public class Chunk : MonoBehaviour
         List<int> trianglesGrassSide = new List<int>();
         List<int> trianglesGrassTop = new List<int>();
         List<int> trianglesObsidian = new List<int>();
+        List<int> trianglesPortal = new List<int>();
         List<Vector2> uvsList = new List<Vector2>();
 
         int vertexOffset = 0;
@@ -432,24 +540,29 @@ public class Chunk : MonoBehaviour
                         AddBlockMesh(x, y, z, verticesList, trianglesObsidian, uvsList, ref vertexOffset);
                         Debug.Log($"Generating obsidian block mesh at {x},{y},{z}");
                     }
+                    else if (blocks[x, y, z] == BlockType.PortalCore)
+                    {
+                        AddBlockMesh(x, y, z, verticesList, trianglesPortal, uvsList, ref vertexOffset);
+                    }
 
                 }
             }
         }
 
         mesh.vertices = verticesList.ToArray();
-        mesh.subMeshCount = 6; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces), one for obsidian
+        mesh.subMeshCount = 7; // One submesh for bedrock, one for stone, one for dirt, two for grass (side & top faces), one for obsidian
         mesh.SetTriangles(trianglesBedrock.ToArray(), 0); // First submesh is bedrock
         mesh.SetTriangles(trianglesStone.ToArray(), 1);   // Second submesh is stone
         mesh.SetTriangles(trianglesDirt.ToArray(), 2);    // Third for dirt
         mesh.SetTriangles(trianglesGrassSide.ToArray(), 3); // Fourth for grass side
         mesh.SetTriangles(trianglesGrassTop.ToArray(), 4); // Fifth for grass top
         mesh.SetTriangles(trianglesObsidian.ToArray(), 5); // Sixth for obsidian
+        mesh.SetTriangles(trianglesPortal.ToArray(), 6); // Seventh for portal core
         mesh.uv = uvsList.ToArray();
         mesh.RecalculateNormals();
 
         // Assign all materials to the renderer
-        Material[] materials = new Material[6] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial };
+        Material[] materials = new Material[7] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial, portalCoreMaterial };
         meshRenderer.materials = materials;
     }
 

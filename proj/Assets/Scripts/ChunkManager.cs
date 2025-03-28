@@ -23,7 +23,7 @@ public class ChunkManager : MonoBehaviour
     private List<int2> prioritizedChunks = new List<int2>(); //direction based loading
 
 
-    public Material portalCoreMaterial;
+    
 
     void Start()
     {
@@ -32,11 +32,6 @@ public class ChunkManager : MonoBehaviour
         {
             terrainGenerator = gameObject.AddComponent<TerrainGenerator>();
             Debug.Log("TerrainGenerator component created");
-        }
-
-        if (portalCoreMaterial == null)
-        {
-            portalCoreMaterial = new Material(Shader.Find("Custom/PortalCoreShader"));
         }
 
         // Set chunk size from Chunk constants
