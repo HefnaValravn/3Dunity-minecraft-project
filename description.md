@@ -1,5 +1,3 @@
-This document is incomplete. It will be communicated on Toledo when it is complete, en this message won't be present at the top
-
 # 3D Graphics project
 
 This is the assignment for the course '3d graphics'. This assignment will be graded both as code (I check your results at home), as well as an oral exam defending your code. This document describes what you need to implement. I recommend you don't start coding from the start, I would recommend you scan this entire document, especially the hints section, before you start.
@@ -13,6 +11,14 @@ This is the assignment for the course '3d graphics'. This assignment will be gra
 * Feel free to add extra features (eg debug camera, debug visualizations, debug logging), but if they interfere with your result (how things look / act), have a way to turn them on/off and have them default off.
 * Your code is tidy. By this I mean that you shouldn't have large swathes of duplicated code, bad indentation, or badly named variables. Do not worry too much about using patterns (assume your code won't be extended in the future) or complicated oo techniques, this is not the objectives of this course.
 * For each asset (texture, models) that you didn't create yourself, you have an entry in a text file (in the root of your repository, named 'attributions.txt'). The entry has the path to the asset on disk, the url of where you got it from, and the license. Make sure the license is compatible with how you're using it (educational purposes)
+
+## Checklist 
+
+* Check that there's nothing left to commit ('git status')
+* Check that you pushed (check on github that the last commit is there, or just 'git push')
+* Do a sanity check. Clone your repo in an empty directory. Open it, run it, and check it for errors. From experience, it's really easy to forget to commit files, and believe it works because it works locally. It's also really dangerous, as you might be missing entire files, and I can't grade what I can't see
+* Check that each asset that you didn't create yourself listed in attributions.txt. 
+* Check that attributions.txt is committed and pushed (easiest to check on github)
 
 ## First steps
 
@@ -289,7 +295,14 @@ Now, let's finally get to rendering. We'll start by rendering a single block.
 
 Pat yourself on the back. You've made the quintessential minecraft primitive. Make a git commit and push it. (Of course you can commit and push more often, this is just a reminder. I commit whenever a thing is working, no matter how tiny, or every hour)
 
-Now, we could render our entire world by using a GameObject with a cube mesh for each block. However, this is a bad idea. We would end up with millions of `GameObject`, which will be bad for performance. We'll see much better performance if we batch all of our blocks in a chunk in a single `Mesh`. So let's do that.
+Now, we could render our entire world by using a GameObject with a cube mesh for each block. However, this is a bad idea. We would end up with millions of `GameObject`, which will be bad for performance. We'll see much better performance if we batch all of our blocks of the same material in a single `Mesh`. 
+
+To clarify:
+
+* Our world consists of multiple chunks
+* A chunk consists out of one or more meshes, each of which has all the blocks of a chunk with the same blocktype
+
+So let's do that.
 
 * Generalize your mesh generation by looping through all the elements in the blocks array. You will need to have a triple loop.
 * Create an empty `ArrayList` (or other collection you think is appropriate) of vertices and indices.
@@ -489,7 +502,8 @@ The center doesn't have any blocks, but has a shimmering purple plane.
 
 Your job:
 * Every multiple of 10 chunks, add a portal to the chunk. Eg the chunks at (0,0), (10, 0), (0, 10), and (10, 10) all should have a portal, and the portal should sit mostly correctly on the terrain (the portal is on top of the terrain, and the center is not obscured by blocks),
-* Create a new lit material for the obsidian blocks. Use procedural generation to generate a heightmap, and use finite differencing to turn this into your normals. The color can be anything you want. 
+* Create a new unlit material for the obsidian blocks. Implement blinn-phong lighting. As a light source, only account for the directional light in the scene. You can use [_WorldSpaceLightPos0](https://docs.unity3d.com/Manual/SL-UnityShaderVariables.html) to get the direction. For the formulae, either refer to the slider, or if you want it explained a different way, [this chapter](https://developer.download.nvidia.com/CgTutorial/cg_tutorial_chapter05.html) made it click for me originally 
+* Use procedural generation to generate a heightmap, and use finite differencing to turn this into your normals. The color can be anything you want. 
 * Create geometry and material for the center of the portal. How you do this is completely free, just make sure the effect is interesting. Remember, you have a method to create a plane. You must use at least one custom shader. Spend at least an hour on this.
 
 Commit, and push. Don't forget to check that your 
@@ -507,7 +521,9 @@ Commit, and push. Don't forget to check that your
 * Again, send me an email. No need to get frustrated or stuck.
 
 ## Version list
-
+* 1.0.0 Checklist
+* 0.2.0 Added blinn phong lighing 
+* 0.1.1 Minor clarification
 * 0.1.0 Portal
 * 0.0.7 Water
 * 0.0.6 Remove outdated information

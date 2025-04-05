@@ -188,13 +188,13 @@ public class Chunk : MonoBehaviour
         isInitialized = true;
     }
 
-    private Material CreateLitObsidianMaterial()
+    private Material CreateUnlitObsidianMaterial()
     {
         // Create a new shader for lit obsidian
-        Shader litObsidianShader = Shader.Find("Custom/litObsidian");
-        if (litObsidianShader == null)
-            litObsidianShader = Shader.Find("litObsidian");
-        Material litObsidianMaterial = new Material(litObsidianShader);
+        Shader unlitObsidianShader = Shader.Find("Custom/unlitObsidian");
+        if (unlitObsidianShader == null)
+            unlitObsidianShader = Shader.Find("unlitObsidian");
+        Material unlitObsidianMaterial = new Material(unlitObsidianShader);
 
         // Generate a procedural heightmap for normal generation
         Texture2D heightMap = GenerateProceduralHeightmap(128, 128);
@@ -202,13 +202,13 @@ public class Chunk : MonoBehaviour
         // Calculate normals using finite differencing
         Texture2D normalMap = CalculateNormalsFromHeightmap(heightMap);
 
-        litObsidianMaterial.SetTexture("_HeightMap", heightMap);
-        litObsidianMaterial.SetTexture("_NormalMap", normalMap);
-        litObsidianMaterial.SetColor("_BaseColor", new Color(0.2f, 0.2f, 0.3f, 1f)); // Deep purple-blue
-        litObsidianMaterial.SetFloat("_Metallic", 0.5f);
-        litObsidianMaterial.SetFloat("_Smoothness", 0.7f);
+        unlitObsidianMaterial.SetTexture("_HeightMap", heightMap);
+        unlitObsidianMaterial.SetTexture("_NormalMap", normalMap);
+        unlitObsidianMaterial.SetColor("_BaseColor", new Color(0.2f, 0.2f, 0.3f, 1f)); // Deep purple-blue
+        unlitObsidianMaterial.SetFloat("_Metallic", 0.5f);
+        unlitObsidianMaterial.SetFloat("_Smoothness", 0.7f);
 
-        return litObsidianMaterial;
+        return unlitObsidianMaterial;
     }
 
     private Texture2D GenerateProceduralHeightmap(int width, int height)
@@ -600,10 +600,8 @@ public class Chunk : MonoBehaviour
         dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
-        obsidianMaterial = CreateLitObsidianMaterial();
+        obsidianMaterial = CreateUnlitObsidianMaterial();
         portalCoreMaterial = CreatePortalCoreShader();
-
-
         Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("proper_stone");
         Texture2D dirtTexture = Resources.Load<Texture2D>("proper_dirt");
