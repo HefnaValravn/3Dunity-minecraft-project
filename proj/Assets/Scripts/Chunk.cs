@@ -420,7 +420,7 @@ public class Chunk : MonoBehaviour
                 portalZ + chunkCoordinate.y * CHUNK_SIZE_Z + 0.5f
             );
 
-            
+
             Debug.Log($"Portal Y position: {portalY}");
 
             // Create 4x5 portal frame of obsidian
@@ -517,14 +517,15 @@ public class Chunk : MonoBehaviour
             GameObject portalPlane = new GameObject("PortalPlane_" + portalZ);
             portalPlane.transform.SetParent(transform);
 
+            // Find the center position of the portal in local chunk space
+            float centerX = ((minX + maxX + 1) / 2f) - portalFramePosition.x - 0.5f;
+            float centerY = ((minY + maxY + 1) / 2f) - portalFramePosition.y;
+            float centerZ = portalZ + 0.5f - portalFramePosition.z;
 
-            //set position to portal frame's position
-            portalPlane.transform.localPosition = new Vector3(
-                chunkCoordinate.x * CHUNK_SIZE_X,
-                0,
-                chunkCoordinate.y * CHUNK_SIZE_Z
-            );
-            
+            // Position portal plane at this position
+            portalPlane.transform.localPosition = new Vector3(centerX, centerY, centerZ);
+
+
             Debug.Log($"PortalPlane position: {portalPlane.transform.localPosition}");
             Debug.Log($"Portal location: {portalFramePosition}");
 
@@ -541,6 +542,7 @@ public class Chunk : MonoBehaviour
             // Small offset to position core plane in the middle of the obsidian frame blocks
             float zOffset = 0.5f;
 
+            // Use absolute positions that include the chunk offset
             vertices[0] = new Vector3(minX, minY, portalZ + zOffset); // Bottom Left
             vertices[1] = new Vector3(maxX + 1, minY, portalZ + zOffset); // Bottom Right
             vertices[2] = new Vector3(maxX + 1, maxY + 1, portalZ + zOffset); // Top Right
