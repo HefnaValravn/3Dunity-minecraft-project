@@ -26,6 +26,7 @@ public class Chunk : MonoBehaviour
     private MeshRenderer meshRenderer; //renders the mesh
     private Mesh mesh; //the mesh itself lol
     private Mesh portalMesh; //mesh for the portal blocks
+    private Vector3 portalFramePosition;
 
     private Material bedrockMaterial;
     private Material stoneMaterial;
@@ -56,7 +57,7 @@ public class Chunk : MonoBehaviour
             return;
         }
         blocks = new BlockType[CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z]; // This defines the size of the chunk
-
+        portalCoreMaterial = CreatePortalCoreShader();
 
 
 
@@ -184,6 +185,7 @@ public class Chunk : MonoBehaviour
         }
 
         GeneratePortal();
+        GeneratePortalPlane();
 
         isInitialized = true;
     }
@@ -411,6 +413,14 @@ public class Chunk : MonoBehaviour
 
             int portalY = terrainGenerator.GetTerrainHeight(portalLocation.x + chunkCoordinate.x * CHUNK_SIZE_X, portalLocation.y + chunkCoordinate.y * CHUNK_SIZE_Z);
 
+            //store portal location
+            portalFramePosition = new Vector3(
+                portalX + chunkCoordinate.x * CHUNK_SIZE_X + 0.5f,
+                portalY + 2.5f, // Center of the 4x5 frame
+                portalZ + chunkCoordinate.y * CHUNK_SIZE_Z + 0.5f
+            );
+
+            
             Debug.Log($"Portal Y position: {portalY}");
 
             // Create 4x5 portal frame of obsidian
@@ -450,6 +460,15 @@ public class Chunk : MonoBehaviour
 
     private void GeneratePortalPlane()
     {
+        // Remove any existing portal planes
+        foreach (Transform child in transform)
+        {
+            if (child.name.StartsWith("PortalPlane_"))
+            {
+                Destroy(child.gameObject);
+            }
+        }
+
         // First find all portal core locations
         List<Vector3Int> portalCoreLocations = new List<Vector3Int>();
 
@@ -486,9 +505,24 @@ public class Chunk : MonoBehaviour
             int minY = portalGroup.Min(pos => pos.y);
             int maxY = portalGroup.Max(pos => pos.y);
 
+
+            // Skip portal cores that span outside the current chunk
+            if (minX < 0 || maxX >= CHUNK_SIZE_X || minY < 0 || maxY >= CHUNK_SIZE_Y)
+            {
+                Debug.LogWarning($"Skipping portal plane at Z={portalZ} because it spans outside the chunk bounds.");
+                continue;
+            }
+
             // Create a single portal plane GameObject
             GameObject portalPlane = new GameObject("PortalPlane_" + portalZ);
             portalPlane.transform.SetParent(transform);
+
+            //set position to portal frame's position
+            portalPlane.transform.position = new Vector3(
+                chunkCoordinate.x * CHUNK_SIZE_X,
+                0,
+                chunkCoordinate.y * CHUNK_SIZE_Z
+            );
 
             // Add components
             MeshFilter meshFilter = portalPlane.AddComponent<MeshFilter>();
@@ -499,7 +533,8 @@ public class Chunk : MonoBehaviour
 
             // Create vertices for a single plane
             Vector3[] vertices = new Vector3[4];
-            // Small offset to prevent z-fighting - move slightly forward
+
+            // Small offset to position core plane in the middle of the obsidian frame blocks
             float zOffset = 0.5f;
 
             vertices[0] = new Vector3(minX, minY, portalZ + zOffset); // Bottom Left
@@ -575,6 +610,23 @@ public class Chunk : MonoBehaviour
                 vp.Play();
             };
 
+        }
+
+        // Remove misaligned portal planes
+        foreach (Transform child in transform)
+        {
+            if (child.name.StartsWith("PortalPlane_"))
+            {
+                // Calculate the center of the portal plane
+                Vector3 portalPlaneCenter = child.GetComponent<MeshFilter>().mesh.bounds.center + child.position;
+
+                // Check if the portal plane center is too far from the portal frame position
+                if (Vector3.Distance(portalPlaneCenter, portalFramePosition) > 5f)
+                {
+                    Debug.LogWarning($"Removing misaligned portal plane at {child.position}");
+                    Destroy(child.gameObject);
+                }
+            }
         }
     }
 
@@ -690,7 +742,6 @@ public class Chunk : MonoBehaviour
         Material[] materials = new Material[6] { bedrockMaterial, stoneMaterial, dirtMaterial, grassSideMaterial, grassTopMaterial, obsidianMaterial };
         meshRenderer.materials = materials;
 
-        GeneratePortalPlane();
     }
 
 

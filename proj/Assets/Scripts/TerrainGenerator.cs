@@ -7,16 +7,16 @@ public class TerrainGenerator : MonoBehaviour
     [Header("Terrain Settings")]
 
     //controls the size/detail level of the noise pattern (small, spiky mountains with higher value or vast, rolling, smooth hills with lower value)
-    public float noiseScale = 0.005f;
+    public float noiseScale = 0.012f;
 
     //number of Perlin noise layers
-    public int octaves = 3;
+    public int octaves = 6;
 
     //how much each successive octave contributes to final noise value
-    public float persistence = 0.4f;
+    public float persistence = 0.5f;
 
     //how much frequency increases with each octave
-    public float lacunarity = 1.8f;
+    public float lacunarity = 2.1f;
     public int seed = 0;
 
 
