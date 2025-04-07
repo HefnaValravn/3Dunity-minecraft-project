@@ -483,7 +483,7 @@ public class Chunk : MonoBehaviour
                         // We found a portal block
                         portalCoreLocations.Add(new Vector3Int(x, y, z));
                         // Set the block to Air so it doesn't get rendered in the main mesh
-                        blocks[x, y, z] = BlockType.Air;
+                        // blocks[x, y, z] = BlockType.Air;
                     }
                 }
             }
@@ -517,12 +517,16 @@ public class Chunk : MonoBehaviour
             GameObject portalPlane = new GameObject("PortalPlane_" + portalZ);
             portalPlane.transform.SetParent(transform);
 
+
             //set position to portal frame's position
-            portalPlane.transform.position = new Vector3(
+            portalPlane.transform.localPosition = new Vector3(
                 chunkCoordinate.x * CHUNK_SIZE_X,
                 0,
                 chunkCoordinate.y * CHUNK_SIZE_Z
             );
+            
+            Debug.Log($"PortalPlane position: {portalPlane.transform.localPosition}");
+            Debug.Log($"Portal location: {portalFramePosition}");
 
             // Add components
             MeshFilter meshFilter = portalPlane.AddComponent<MeshFilter>();
@@ -612,22 +616,6 @@ public class Chunk : MonoBehaviour
 
         }
 
-        // Remove misaligned portal planes
-        foreach (Transform child in transform)
-        {
-            if (child.name.StartsWith("PortalPlane_"))
-            {
-                // Calculate the center of the portal plane
-                Vector3 portalPlaneCenter = child.GetComponent<MeshFilter>().mesh.bounds.center + child.position;
-
-                // Check if the portal plane center is too far from the portal frame position
-                if (Vector3.Distance(portalPlaneCenter, portalFramePosition) > 5f)
-                {
-                    Debug.LogWarning($"Removing misaligned portal plane at {child.position}");
-                    Destroy(child.gameObject);
-                }
-            }
-        }
     }
 
 
