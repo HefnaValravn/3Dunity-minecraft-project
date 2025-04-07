@@ -148,10 +148,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f2e9dc913d59536819575cb74c51b1bc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  noiseScale: 0.025
-  octaves: 4
+  noiseScale: 0.012
+  octaves: 6
   persistence: 0.5
-  lacunarity: 2
+  lacunarity: 2.1
   seed: 0
   bedrockNoiseScale: 0.05
   caveNoiseScale: 0.1
@@ -925,7 +925,6 @@ MonoBehaviour:
   viewDistance: 3
   prioritizeViewDirection: 1
   terrainGenerator: {fileID: 130113485}
-  portalCoreMaterial: {fileID: 0}
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0

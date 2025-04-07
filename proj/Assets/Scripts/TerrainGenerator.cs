@@ -7,17 +7,17 @@ public class TerrainGenerator : MonoBehaviour
     [Header("Terrain Settings")]
 
     //controls the size/detail level of the noise pattern (small, spiky mountains with higher value or vast, rolling, smooth hills with lower value)
-    public float noiseScale = 0.025f;
+    public float noiseScale = 0.005f;
 
     //number of Perlin noise layers
-    public int octaves = 4;
+    public int octaves = 3;
 
     //how much each successive octave contributes to final noise value
-    public float persistence = 0.5f;
+    public float persistence = 0.4f;
 
     //how much frequency increases with each octave
-    public float lacunarity = 2.0f;
-    public int seed = 12345;
+    public float lacunarity = 1.8f;
+    public int seed = 0;
 
 
 
@@ -35,7 +35,7 @@ public class TerrainGenerator : MonoBehaviour
     public int caveOctaves = 2; // controls complexity/detail of caves
     public float cavePersistence = 0.5f;
     public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
-    public int caveSeed = 54321; // Different seed for caves
+    public int caveSeed = 0; // Different seed for caves
 
 
     [Header("Surface Cave Entrance Settings")]
