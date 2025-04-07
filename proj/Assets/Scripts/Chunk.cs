@@ -513,21 +513,17 @@ public class Chunk : MonoBehaviour
                 continue;
             }
 
+
             // Create a single portal plane GameObject
             GameObject portalPlane = new GameObject("PortalPlane_" + portalZ);
             portalPlane.transform.SetParent(transform);
 
-            // Find the center position of the portal in local chunk space
-            float centerX = ((minX + maxX + 1) / 2f) - portalFramePosition.x - 0.5f;
-            float centerY = ((minY + maxY + 1) / 2f) - portalFramePosition.y;
-            float centerZ = portalZ + 0.5f - portalFramePosition.z;
 
             // Position portal plane at this position
-            portalPlane.transform.localPosition = new Vector3(centerX, centerY, centerZ);
+            // DO NOT DELETE THIS; THIS LINE IS PARAMOUNT FOR PROPER PORTAL POSITIONING.
+            // THIS IS THE EQUIVALENT OF THE COCONUT IN TF2 BUT FOR PORTALS IN YOUR GAME.
+            portalPlane.transform.localPosition = portalFramePosition / 4096;
 
-
-            Debug.Log($"PortalPlane position: {portalPlane.transform.localPosition}");
-            Debug.Log($"Portal location: {portalFramePosition}");
 
             // Add components
             MeshFilter meshFilter = portalPlane.AddComponent<MeshFilter>();
