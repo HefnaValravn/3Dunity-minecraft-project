@@ -588,14 +588,9 @@ public class Chunk : MonoBehaviour
             videoPlayer.waitForFirstFrame = true;
 
 
-            AudioSource audioSource = portalPlane.AddComponent<AudioSource>();
-            audioSource.playOnAwake = false; // Prevent audio from playing before the video
-            audioSource.spatialBlend = 0;    // Set to 0 for 2D audio (non-spatialized)
-
-            // Configure the VideoPlayer to use the AudioSource
-            videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
-            videoPlayer.SetTargetAudioSource(0, audioSource);
-            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "cat.ogv");
+            
+            videoPlayer.SetDirectAudioMute(0, true);
+            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "camel.mp4");
 
 
             videoPlayer.Prepare();
