@@ -580,7 +580,7 @@ public class Chunk : MonoBehaviour
 
             // Configure the VideoPlayer
             VideoPlayer videoPlayer = portalPlane.AddComponent<VideoPlayer>();
-            videoPlayer.playOnAwake = false; // Automatically play the video
+            videoPlayer.playOnAwake = true; // Automatically play the video
             videoPlayer.isLooping = true;   // Loop the video
             videoPlayer.renderMode = VideoRenderMode.MaterialOverride; // Render video on material
             videoPlayer.targetMaterialRenderer = meshRenderer; // Target the portal plane's renderer
@@ -590,22 +590,16 @@ public class Chunk : MonoBehaviour
 
             
             videoPlayer.SetDirectAudioMute(0, true);
-            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "camel.mp4");
+            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "skeleton.ogv");
 
 
             videoPlayer.Prepare();
             videoPlayer.prepareCompleted += (vp) =>
             {
+                vp.playbackSpeed = 1.2f;
                 vp.Play();
-                vp.time = 0;
             };
 
-            videoPlayer.loopPointReached += (vp) =>
-            {
-                vp.Stop();
-                vp.time = 0;
-                vp.Play();
-            };
 
         }
 
