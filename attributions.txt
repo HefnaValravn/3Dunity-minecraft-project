@@ -17,4 +17,9 @@ The texture for the portal core comes from pixabay.com (Credit: NickiAnimations)
 pixabay's Content License (https://pixabay.com/service/license-summary/)
 location on disc:
 
-'/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/StreamingAssets/Videos/skeleton.ogv'
+'/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/StreamingAssets/Videos/gudskel.ogv'
+
+
+The audio used in the skeleton video comes from (https://pixabay.com/sound-effects/basspulse-55275/)
+location on disc:
+'/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/StreamingAssets/Videos/gudskel.ogv'

@@ -587,10 +587,20 @@ public class Chunk : MonoBehaviour
             videoPlayer.targetMaterialProperty = "_MainTex";   // Use the main texture of the material                  
             videoPlayer.waitForFirstFrame = true;
 
-
+            videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
+            AudioSource audioSource = portalPlane.AddComponent<AudioSource>();
+            videoPlayer.SetTargetAudioSource(0, audioSource);
             
-            videoPlayer.SetDirectAudioMute(0, true);
-            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "skeleton.ogv");
+            audioSource.playOnAwake = false;
+            audioSource.spatialBlend = 0.0f; // 2D sound for now
+            audioSource.loop = true;
+            audioSource.volume = 0.6f;
+
+            // Attach a script to adjust volume based on distance
+            DynamicAudioAdjuster audioAdjuster = portalPlane.AddComponent<DynamicAudioAdjuster>();
+            audioAdjuster.Initialize(audioSource, portalPlane.transform.position);
+
+            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "gudskel.ogv");
 
 
             videoPlayer.Prepare();
@@ -599,6 +609,7 @@ public class Chunk : MonoBehaviour
                 vp.playbackSpeed = 1.2f;
                 vp.Play();
             };
+
 
 
         }
