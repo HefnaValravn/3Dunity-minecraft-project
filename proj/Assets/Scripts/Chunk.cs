@@ -633,7 +633,7 @@ public class Chunk : MonoBehaviour
             DynamicAudioAdjuster audioAdjuster = portalPlane.AddComponent<DynamicAudioAdjuster>();
             audioAdjuster.Initialize(audioSource, portalPlane.transform.position);
 
-            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "gudskel.ogv");
+            videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "finalskel.ogv");
 
 
             videoPlayer.Prepare();

@@ -18,7 +18,8 @@ pixabay's Content License (https://pixabay.com/service/license-summary/)
 location on disc:
 
 '/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/StreamingAssets/Videos/gudskel.ogv'
-
+It has a rectangle in the bottom right corner because the software I used to add audio to the video put a watermark
+on it, so it looked a bit uglier than it looks now.
 
 The audio used in the skeleton video comes from (https://pixabay.com/sound-effects/basspulse-55275/)
 location on disc:
