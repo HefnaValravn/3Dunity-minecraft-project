@@ -184,10 +184,43 @@ public class Chunk : MonoBehaviour
             }
         }
 
+        int waterLevel = 62; // Default value
+        ChunkManager chunkManager = FindFirstObjectByType<ChunkManager>();
+        if (chunkManager != null)
+        {
+            waterLevel = chunkManager.waterLevel;
+        }
+
+        // Convert grass to riverbed dirt below water level
+        ConvertGrassToRiverbed(waterLevel);
+
         GeneratePortal();
         GeneratePortalPlane();
 
         isInitialized = true;
+    }
+
+    private void ConvertGrassToRiverbed(int waterLevel)
+    {
+        // First pass: identify blocks that are grass and below or at water level
+        for (int x = 0; x < CHUNK_SIZE_X; x++)
+        {
+            for (int z = 0; z < CHUNK_SIZE_Z; z++)
+            {
+                for (int y = waterLevel; y >= 0; y--)
+                {
+                    // If we find a grass block below water level, convert it to dirt
+                    if (blocks[x, y, z] == BlockType.Grass)
+                    {
+                        // Check if this block is in contact with water (air above at water level)
+                        if (y + 1 <= waterLevel)
+                        {
+                            blocks[x, y, z] = BlockType.Dirt;
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private Material CreateUnlitObsidianMaterial()
@@ -590,7 +623,7 @@ public class Chunk : MonoBehaviour
             videoPlayer.audioOutputMode = VideoAudioOutputMode.AudioSource;
             AudioSource audioSource = portalPlane.AddComponent<AudioSource>();
             videoPlayer.SetTargetAudioSource(0, audioSource);
-            
+
             audioSource.playOnAwake = false;
             audioSource.spatialBlend = 0.0f; // 2D sound for now
             audioSource.loop = true;
