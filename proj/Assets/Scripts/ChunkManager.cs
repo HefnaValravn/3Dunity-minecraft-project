@@ -8,7 +8,7 @@ public class ChunkManager : MonoBehaviour
     public Camera firstPlayerCamera;
     public Camera thirdPlayerCamera;
     private Camera activeCamera;
-    public int viewDistance = 3; // Number of chunks visible around the player (2 means a 5x5 grid)
+    public int viewDistance = 5; // Number of chunks visible around the player (2 means a 5x5 grid)
     //this is because there are 2 to the player's left side, 2 to the right side, and the one the player is on
     //which makes a 5x5 grid when viewDistance = 2, or a 7x7 grid when viewDistance = 3
     //or a 11x11 grid if viewDistance = 5
@@ -23,7 +23,14 @@ public class ChunkManager : MonoBehaviour
     private List<int2> prioritizedChunks = new List<int2>(); //direction based loading
 
 
-    
+    [Header("Water Settings")]
+    public Material waterMaterial;
+    public int waterLevel = 50;
+    public int waterTesselation = 8;
+    private Dictionary<int2, GameObject> waterObjects = new Dictionary<int2, GameObject>();
+
+
+
 
     void Start()
     {
@@ -62,6 +69,42 @@ public class ChunkManager : MonoBehaviour
             // Fallback to main camera if neither is active
             activeCamera = Camera.main;
             Debug.LogWarning("Neither first-person nor third-person camera is active. Using Camera.main as fallback.");
+        }
+    }
+
+    private void LoadWater(int2 coord)
+    {
+        // Check if water already exists at this coordinate
+        if (waterObjects.ContainsKey(coord))
+            return;
+
+        // Create water GameObject
+        GameObject waterObject = new GameObject($"Water {coord.x}, {coord.y}");
+        waterObject.transform.parent = transform;
+
+        // Add WaterGenerator component
+        WaterGenerator waterGenerator = waterObject.AddComponent<WaterGenerator>();
+        waterGenerator.waterMaterial = waterMaterial;
+        waterGenerator.waterLevel = waterLevel;
+
+        // Initialize water
+        Vector3 chunkPosition = new Vector3(coord.x * chunkSize, 0, coord.y * chunkSize);
+        waterGenerator.Initialize(chunkPosition, chunkSize, chunkSize, waterTesselation, waterTesselation);
+        if (activeChunks.TryGetValue(coord, out Chunk chunk) && chunk != null && chunk.blocks != null)
+        {
+            waterGenerator.AdjustForTerrain(chunk.blocks, chunkSize, Chunk.CHUNK_SIZE_Y, chunkSize);
+        }
+
+        // Store reference to water object
+        waterObjects[coord] = waterObject;
+    }
+
+    private void UnloadWater(int2 coord)
+    {
+        if (waterObjects.TryGetValue(coord, out GameObject waterObject))
+        {
+            Destroy(waterObject);
+            waterObjects.Remove(coord);
         }
     }
 
@@ -187,6 +230,8 @@ public class ChunkManager : MonoBehaviour
         chunk.SetPosition();
         chunk.GenerateMesh();
         activeChunks[coord] = chunk;
+
+        LoadWater(coord);
     }
 
     private void UnloadChunk(int2 coord)
@@ -197,6 +242,8 @@ public class ChunkManager : MonoBehaviour
             chunkPool.Enqueue(chunk);
             activeChunks.Remove(coord);
         }
+
+        UnloadWater(coord);
     }
 
     private int2 GetChunkCoord(Vector3 position)

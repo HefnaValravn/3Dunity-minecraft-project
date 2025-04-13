@@ -922,9 +922,12 @@ MonoBehaviour:
   player: {fileID: 1372197568}
   firstPlayerCamera: {fileID: 330585545}
   thirdPlayerCamera: {fileID: 1463593758}
-  viewDistance: 3
+  viewDistance: 5
   prioritizeViewDirection: 1
   terrainGenerator: {fileID: 130113485}
+  waterMaterial: {fileID: 2100000, guid: 85943d0ad10a54885812c05a4d8686e8, type: 2}
+  waterLevel: 62
+  waterTesselation: 8
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0
