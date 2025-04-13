@@ -4,7 +4,7 @@ public class WaterGenerator : MonoBehaviour
 {
     [Header("Water Settings")]
     public Material waterMaterial;
-    public int waterLevel = 40; // Height at which water will be placed
+    public int waterLevel = 62; // Height at which water will be placed
     public float waterAmplitude = 0.1f; // How much the vertices move up/down
     public float waterFrequency = 1.0f; // Speed of water animation
 
@@ -12,7 +12,7 @@ public class WaterGenerator : MonoBehaviour
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
     private Vector3[] originalVertices;
-    private float timeOffset;
+    private Vector3[] worldPositions; //positions of water planes
 
     private float[] heightOffsets;
 
@@ -42,8 +42,16 @@ public class WaterGenerator : MonoBehaviour
         // Store original vertices for animation
         originalVertices = waterMesh.vertices;
 
+        // Calculate and store world positions for each vertex
+        worldPositions = new Vector3[originalVertices.Length];
+        for (int i = 0; i < originalVertices.Length; i++)
+        {
+            // Transform to world space and store
+            worldPositions[i] = transform.TransformPoint(originalVertices[i]);
+        }
+
         // Position the water
-        transform.position = position + new Vector3(0, waterLevel + 0.05f, 0);
+        transform.position = position + new Vector3(0, waterLevel, 0);
 
         // Set material
         if (waterMaterial != null)
@@ -60,8 +68,6 @@ public class WaterGenerator : MonoBehaviour
             meshRenderer.material = waterMaterial;
         }
 
-        // Add a random time offset to desynchronize water animations between chunks
-        timeOffset = Random.Range(0f, 10f);
     }
 
     public Mesh GenerateTesselatedPlane(int sizeX, int sizeZ, int xSquares, int zSquares)
@@ -129,11 +135,27 @@ public class WaterGenerator : MonoBehaviour
         {
             vertices[i] = originalVertices[i];
 
-            // Add sine wave movement to create ripple effect
-            float xCoord = vertices[i].x * 0.3f + Time.time * waterFrequency + timeOffset;
-            float zCoord = vertices[i].z * 0.3f + Time.time * waterFrequency + timeOffset;
+            // Get world position for consistent waves across chunks
+            Vector3 worldPos = worldPositions[i];
 
-            float height = Mathf.Sin(xCoord) * Mathf.Cos(zCoord) * waterAmplitude;
+            // Use world coordinates for wave calculation to ensure continuity across chunks
+            float xCoord = worldPos.x * 0.3f; // Scale factor controls wave size
+            float zCoord = worldPos.z * 0.3f;
+
+            // Add time to animate waves, but use the same time for all chunks
+            float time = Time.time * waterFrequency;
+
+            //multiple combined sin functions for more interesting wave effects
+            float height =
+            Mathf.Sin(xCoord + time) * 0.3f +
+            Mathf.Sin(xCoord * 2.0f + time * 1.1f) * 0.2f + // Additional higher frequency wave
+            Mathf.Sin(zCoord * 0.8f + time * 1.2f) * 0.3f +
+            Mathf.Sin(zCoord * 1.6f + time * 0.9f) * 0.15f + // Additional higher frequency wave
+            Mathf.Sin((xCoord + zCoord) * 0.5f + time * 0.8f) * 0.2f +
+            Mathf.Sin((xCoord - zCoord) * 0.7f + time * 1.3f) * 0.1f; // More variation
+
+            //scale to whatever amplitude you want
+            height *= waterAmplitude;
 
             // Apply the height offset if we have it
             if (heightOffsets != null && i < heightOffsets.Length)
@@ -150,6 +172,16 @@ public class WaterGenerator : MonoBehaviour
 
     public void AdjustForTerrain(BlockType[,,] blocks, int chunkSizeX, int chunkSizeY, int chunkSizeZ)
     {
+        // Update world positions when adjusting for terrain
+        if (waterMesh != null && originalVertices != null)
+        {
+            worldPositions = new Vector3[originalVertices.Length];
+            for (int i = 0; i < originalVertices.Length; i++)
+            {
+                worldPositions[i] = transform.TransformPoint(originalVertices[i]);
+            }
+        }
+
         if (waterMesh == null)
             return;
 
@@ -199,7 +231,5 @@ public class WaterGenerator : MonoBehaviour
                 }
             }
         }
-
-        Debug.Log("Terrain adjustment completed for water mesh");
     }
 }
