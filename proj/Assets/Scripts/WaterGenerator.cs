@@ -7,14 +7,15 @@ public class WaterGenerator : MonoBehaviour
     public int waterLevel = 62; // Height at which water will be placed
     public float waterAmplitude = 0.1f; // How much the vertices move up/down
     public float waterFrequency = 1.0f; // Speed of water animation
+    public float finiteDifferenceDelta = 0.01f; //for finite differencing
 
     private Mesh waterMesh;
     private MeshFilter meshFilter;
     private MeshRenderer meshRenderer;
     private Vector3[] originalVertices;
     private Vector3[] worldPositions; //positions of water planes
-
     private float[] heightOffsets;
+    private Vector3[] normals;
 
 
     private void Start()
@@ -41,6 +42,7 @@ public class WaterGenerator : MonoBehaviour
 
         // Store original vertices for animation
         originalVertices = waterMesh.vertices;
+        normals = new Vector3[originalVertices.Length];
 
         // Calculate and store world positions for each vertex
         worldPositions = new Vector3[originalVertices.Length];
@@ -123,6 +125,53 @@ public class WaterGenerator : MonoBehaviour
         return mesh;
     }
 
+    // Calculate height at a specific world position using our wave function
+    private float CalculateHeight(float x, float z, float time)
+    {
+        float xCoord = x * 0.3f;
+        float zCoord = z * 0.3f;
+
+        // Multiple combined sin functions for more interesting wave effects
+        float height =
+            Mathf.Sin(xCoord + time) * 0.3f +
+            Mathf.Sin(xCoord * 2.0f + time * 1.1f) * 0.2f +
+            Mathf.Sin(zCoord * 0.8f + time * 1.2f) * 0.3f +
+            Mathf.Sin(zCoord * 1.6f + time * 0.9f) * 0.15f +
+            Mathf.Sin((xCoord + zCoord) * 0.5f + time * 0.8f) * 0.2f +
+            Mathf.Sin((xCoord - zCoord) * 0.7f + time * 1.3f) * 0.1f;
+
+        height *= waterAmplitude;
+        return height;
+    }
+
+    // Calculate normal using finite differencing as specified in the instructions
+    private Vector3 CalculateNormal(float x, float z, float height, float time)
+    {
+        // Calculate points using finite differencing
+        Vector3 pointA = new Vector3(x, height, z); // Current point (x, z, f(x, z))
+
+        // Point B = (x+e, z, f(x+e, z))
+        float heightB = CalculateHeight(x + finiteDifferenceDelta, z, time);
+        Vector3 pointB = new Vector3(x + finiteDifferenceDelta, heightB, z);
+
+        // Point C = (x, z+e, f(x, z+e))
+        float heightC = CalculateHeight(x, z + finiteDifferenceDelta, time);
+        Vector3 pointC = new Vector3(x, heightC, z + finiteDifferenceDelta);
+
+        // Calculate vectors along the surface
+        Vector3 vectorAB = pointB - pointA;
+        Vector3 vectorAC = pointC - pointA;
+
+        // Calculate normal using cross product
+        Vector3 normal = Vector3.Cross(vectorAB, vectorAC).normalized;
+
+        // Ensure normal points upward (for water surface)
+        if (normal.y < 0)
+            normal = -normal;
+
+        return normal;
+    }
+
     private void Update()
     {
         if (waterMesh == null || originalVertices == null)
@@ -130,6 +179,9 @@ public class WaterGenerator : MonoBehaviour
 
         // Animate water surface
         Vector3[] vertices = new Vector3[originalVertices.Length];
+        Vector3[] updatedNormals = new Vector3[originalVertices.Length];
+
+        float time = Time.time * waterFrequency;
 
         for (int i = 0; i < vertices.Length; i++)
         {
@@ -138,24 +190,7 @@ public class WaterGenerator : MonoBehaviour
             // Get world position for consistent waves across chunks
             Vector3 worldPos = worldPositions[i];
 
-            // Use world coordinates for wave calculation to ensure continuity across chunks
-            float xCoord = worldPos.x * 0.3f; // Scale factor controls wave size
-            float zCoord = worldPos.z * 0.3f;
-
-            // Add time to animate waves, but use the same time for all chunks
-            float time = Time.time * waterFrequency;
-
-            //multiple combined sin functions for more interesting wave effects
-            float height =
-            Mathf.Sin(xCoord + time) * 0.3f +
-            Mathf.Sin(xCoord * 2.0f + time * 1.1f) * 0.2f + // Additional higher frequency wave
-            Mathf.Sin(zCoord * 0.8f + time * 1.2f) * 0.3f +
-            Mathf.Sin(zCoord * 1.6f + time * 0.9f) * 0.15f + // Additional higher frequency wave
-            Mathf.Sin((xCoord + zCoord) * 0.5f + time * 0.8f) * 0.2f +
-            Mathf.Sin((xCoord - zCoord) * 0.7f + time * 1.3f) * 0.1f; // More variation
-
-            //scale to whatever amplitude you want
-            height *= waterAmplitude;
+            float height = CalculateHeight(worldPos.x, worldPos.z, time);
 
             // Apply the height offset if we have it
             if (heightOffsets != null && i < heightOffsets.Length)
@@ -164,10 +199,11 @@ public class WaterGenerator : MonoBehaviour
             }
 
             vertices[i].y = height;
+            updatedNormals[i] = CalculateNormal(worldPos.x, worldPos.z, height, time);
         }
 
         waterMesh.vertices = vertices;
-        waterMesh.RecalculateNormals();
+        waterMesh.normals = updatedNormals;
     }
 
     public void AdjustForTerrain(BlockType[,,] blocks, int chunkSizeX, int chunkSizeY, int chunkSizeZ)
