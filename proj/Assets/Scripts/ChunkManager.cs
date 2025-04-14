@@ -92,7 +92,7 @@ public class ChunkManager : MonoBehaviour
         waterGenerator.Initialize(chunkPosition, chunkSize, chunkSize, waterTesselation, waterTesselation);
         if (activeChunks.TryGetValue(coord, out Chunk chunk) && chunk != null && chunk.blocks != null)
         {
-            waterGenerator.AdjustForTerrain(chunk.blocks, chunkSize, Chunk.CHUNK_SIZE_Y, chunkSize);
+            // waterGenerator.AdjustForTerrain(chunk.blocks, chunkSize, Chunk.CHUNK_SIZE_Y, chunkSize);
         }
 
         // Store reference to water object

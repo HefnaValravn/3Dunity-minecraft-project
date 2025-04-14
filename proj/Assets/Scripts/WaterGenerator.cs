@@ -16,6 +16,7 @@ public class WaterGenerator : MonoBehaviour
     private Vector3[] worldPositions; //positions of water planes
     private float[] heightOffsets;
     private Vector3[] normals;
+    private Cubemap defaultSkybox;
 
 
     private void Start()
@@ -44,6 +45,9 @@ public class WaterGenerator : MonoBehaviour
         originalVertices = waterMesh.vertices;
         normals = new Vector3[originalVertices.Length];
 
+        // Position the water
+        transform.position = position + new Vector3(0, waterLevel + 0.2f, 0);
+        
         // Calculate and store world positions for each vertex
         worldPositions = new Vector3[originalVertices.Length];
         for (int i = 0; i < originalVertices.Length; i++)
@@ -52,24 +56,70 @@ public class WaterGenerator : MonoBehaviour
             worldPositions[i] = transform.TransformPoint(originalVertices[i]);
         }
 
-        // Position the water
-        transform.position = position + new Vector3(0, waterLevel, 0);
 
         // Set material
-        if (waterMaterial != null)
+        SetupWaterMaterial();
+
+    }
+
+    // Add this new method to your WaterGenerator class
+    private void SetupWaterMaterial()
+    {
+
+        if (waterMaterial == null)
         {
-            meshRenderer.material = waterMaterial;
-        }
-        else
-        {
-            // Create a basic blue material if none is assigned
-            waterMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-            waterMaterial.color = new Color(0.0f, 0.4f, 0.7f, 0.6f);
-            waterMaterial.EnableKeyword("_ALPHAPREMULTIPLY_ON");
-            waterMaterial.renderQueue = 3000; // Transparent rendering queue
-            meshRenderer.material = waterMaterial;
+            // Try to find the custom water shader
+            Shader waterShader = Shader.Find("Custom/WaterShader");
+            if (waterShader == null)
+            {
+                Debug.LogWarning("Custom water shader not found. Using fallback shader.");
+                waterMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+                waterMaterial.color = new Color(0.0f, 0.4f, 0.7f, 0.6f);
+            }
+            else
+            {
+                waterMaterial = new Material(waterShader);
+            }
         }
 
+        if (waterMaterial.HasProperty("_Skybox") &&
+    (RenderSettings.skybox == null || !RenderSettings.skybox.HasProperty("_Cubemap")))
+        {
+            // If there's no skybox, load a default one
+            if (defaultSkybox == null)
+                defaultSkybox = Resources.Load<Cubemap>("DefaultSkybox");
+
+            if (defaultSkybox != null)
+                waterMaterial.SetTexture("_Skybox", defaultSkybox);
+        }
+
+        // Apply the skybox texture for reflection
+        if (RenderSettings.skybox != null)
+        {
+            if (waterMaterial.HasProperty("_Skybox"))
+            {
+                // Check different skybox texture property names
+                if (RenderSettings.skybox.HasProperty("_Tex"))
+                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_Tex"));
+                else if (RenderSettings.skybox.HasProperty("_Cubemap"))
+                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_Cubemap"));
+                else if (RenderSettings.skybox.HasProperty("_MainTex"))
+                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_MainTex"));
+            }
+        }
+
+        // Set shader parameters
+        if (waterMaterial.HasProperty("_WaveSpeed"))
+            waterMaterial.SetFloat("_WaveSpeed", waterFrequency);
+
+        if (waterMaterial.HasProperty("_WaveAmplitude"))
+            waterMaterial.SetFloat("_WaveAmplitude", waterAmplitude);
+
+        // Set up transparency
+        waterMaterial.renderQueue = 3000; // Transparent queue
+
+        // Assign to renderer
+        meshRenderer.material = waterMaterial;
     }
 
     public Mesh GenerateTesselatedPlane(int sizeX, int sizeZ, int xSquares, int zSquares)
@@ -190,85 +240,20 @@ public class WaterGenerator : MonoBehaviour
             // Get world position for consistent waves across chunks
             Vector3 worldPos = worldPositions[i];
 
-            float height = CalculateHeight(worldPos.x, worldPos.z, time);
+            float waveHeight = CalculateHeight(worldPos.x, worldPos.z, time);
 
             // Apply the height offset if we have it
             if (heightOffsets != null && i < heightOffsets.Length)
             {
-                height += heightOffsets[i];
+                waveHeight += heightOffsets[i];
             }
 
-            vertices[i].y = height;
-            updatedNormals[i] = CalculateNormal(worldPos.x, worldPos.z, height, time);
+            vertices[i].y = waveHeight;
+            updatedNormals[i] = CalculateNormal(worldPos.x, worldPos.z, waveHeight, time);
         }
 
         waterMesh.vertices = vertices;
         waterMesh.normals = updatedNormals;
     }
 
-    public void AdjustForTerrain(BlockType[,,] blocks, int chunkSizeX, int chunkSizeY, int chunkSizeZ)
-    {
-        // Update world positions when adjusting for terrain
-        if (waterMesh != null && originalVertices != null)
-        {
-            worldPositions = new Vector3[originalVertices.Length];
-            for (int i = 0; i < originalVertices.Length; i++)
-            {
-                worldPositions[i] = transform.TransformPoint(originalVertices[i]);
-            }
-        }
-
-
-        // Create a new array that will store height offsets
-        heightOffsets = new float[originalVertices.Length];
-
-        for (int i = 0; i < originalVertices.Length; i++)
-        {
-            // Get the vertex in world coordinates
-            Vector3 worldPos = transform.TransformPoint(originalVertices[i]);
-
-            // Convert to block coordinates
-            int blockX = Mathf.FloorToInt(worldPos.x);
-            int blockZ = Mathf.FloorToInt(worldPos.z);
-
-            // Convert to local coordinates within this chunk
-            int localX = blockX % chunkSizeX;
-            if (localX < 0) localX += chunkSizeX;  // Handle negative coordinates
-
-            int localZ = blockZ % chunkSizeZ;
-            if (localZ < 0) localZ += chunkSizeZ;  // Handle negative coordinates
-
-            // Verify we're within bounds
-            if (localX >= 0 && localX < chunkSizeX && localZ >= 0 && localZ < chunkSizeZ)
-            {
-                // Find terrain height
-                int terrainHeight = -1;
-                for (int y = waterLevel + 2; y >= 0; y--)  // Check a bit above water level
-                {
-                    if (y < chunkSizeY && blocks[localX, y, localZ] != BlockType.Air)
-                    {
-                        terrainHeight = y;
-                        break;
-                    }
-                }
-
-
-                if (terrainHeight >= waterLevel - 5 && terrainHeight <= waterLevel + 2)
-                {
-                    // If terrain is at or above water level, make water higher here
-                    if (terrainHeight >= waterLevel - 1)
-                    {
-                        heightOffsets[i] = 0.2f;  // Raise water slightly
-                    }
-                    // If terrain is just below water level, create a shore gradient
-                    else if (terrainHeight >= waterLevel - 3)
-                    {
-                        // Create a gradient effect for shore
-                        heightOffsets[i] = 0.1f;
-                    }
-                }
-            }
-
-        }
-    }
 }
