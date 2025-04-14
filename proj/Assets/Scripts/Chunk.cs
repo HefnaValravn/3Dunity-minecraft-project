@@ -35,6 +35,7 @@ public class Chunk : MonoBehaviour
     private Material grassTopMaterial;
     private Material obsidianMaterial;
     private Material portalCoreMaterial;
+    private Vector3 gudposition;
 
     private void Start()
     {
@@ -429,6 +430,7 @@ public class Chunk : MonoBehaviour
                         if (surroundingsValid)
                         {
                             Debug.Log($"Found portal location at ({x},{y},{z}) after checking {candidatesChecked} candidates and {flatAreasFound} flat areas");
+                            gudposition = new Vector3(x, y, z);
                             return new Vector2(x, z);
                         }
                     }
@@ -647,7 +649,7 @@ public class Chunk : MonoBehaviour
             AudioSource audioSource = portalPlane.AddComponent<AudioSource>();
             videoPlayer.SetTargetAudioSource(0, audioSource);
 
-            audioSource.playOnAwake = false;
+            audioSource.playOnAwake = true;
             audioSource.spatialBlend = 0.0f; // 2D sound for now
             audioSource.loop = true;
             audioSource.volume = 0.6f;
@@ -660,11 +662,13 @@ public class Chunk : MonoBehaviour
 
 
             videoPlayer.Prepare();
+            AudioSource capturedAudioSource = audioSource;
             videoPlayer.prepareCompleted += (vp) =>
             {
                 vp.playbackSpeed = 1.2f;
                 vp.Play();
             };
+
             // Calculate the portal dimensions based on min/max values
             Vector3 portalDimensions = new Vector3(
                 maxX - minX + 1,  // Width
@@ -684,7 +688,7 @@ public class Chunk : MonoBehaviour
         // Front side particles
         GameObject frontParticlesObj = new GameObject("PortalParticles_Front");
         frontParticlesObj.transform.SetParent(portalPlane.transform);
-        frontParticlesObj.transform.localPosition = portalFramePosition;
+        frontParticlesObj.transform.localPosition = new Vector3(gudposition.x, gudposition.y + 3, gudposition.z);
 
         // Add and initialize the front particle system
         PortalParticleSystem frontParticleSystem = frontParticlesObj.AddComponent<PortalParticleSystem>();
@@ -693,7 +697,7 @@ public class Chunk : MonoBehaviour
         // Back side particles - create a separate particle system for the back side
         GameObject backParticlesObj = new GameObject("PortalParticles_Back");
         backParticlesObj.transform.SetParent(portalPlane.transform);
-        backParticlesObj.transform.localPosition = portalFramePosition;
+        backParticlesObj.transform.localPosition = new Vector3(gudposition.x, gudposition.y + 3, gudposition.z);
 
         // Rotate the back particle system 180 degrees around Y-axis to face the opposite direction
         backParticlesObj.transform.localRotation = Quaternion.Euler(0, 180, 0);

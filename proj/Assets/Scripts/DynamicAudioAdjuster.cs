@@ -7,10 +7,13 @@ public class DynamicAudioAdjuster : MonoBehaviour
     private Vector3 portalPosition;
     private float maxDistance = 80; // Maximum distance for audio to fade out
 
+    private bool isInitialized = false;
+
     public void Initialize(AudioSource source, Vector3 position)
     {
         audioSource = source;
         portalPosition = position;
+        isInitialized = true;
 
         // Find the player transform
         GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
@@ -26,8 +29,10 @@ public class DynamicAudioAdjuster : MonoBehaviour
 
     private void Update()
     {
-        if (playerTransform == null || audioSource == null)
+        if (playerTransform == null || audioSource == null || !isInitialized)
             return;
+
+        portalPosition = transform.parent.position;
 
         // Calculate distance between player and portal
         float distance = Vector3.Distance(playerTransform.position, portalPosition);
@@ -36,7 +41,5 @@ public class DynamicAudioAdjuster : MonoBehaviour
         float volume = distance > maxDistance ? 0 : (distance <= 60 ? 1 : Mathf.Clamp01(1 - ((distance - 60) / (maxDistance - 60))));
         audioSource.volume = volume;
 
-        // Debug log for troubleshooting
-        Debug.Log($"Distance to portal: {distance}, Volume: {audioSource.volume}");
     }
 }
