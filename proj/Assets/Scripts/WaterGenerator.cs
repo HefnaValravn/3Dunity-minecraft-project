@@ -182,8 +182,6 @@ public class WaterGenerator : MonoBehaviour
             }
         }
 
-        if (waterMesh == null)
-            return;
 
         // Create a new array that will store height offsets
         heightOffsets = new float[originalVertices.Length];

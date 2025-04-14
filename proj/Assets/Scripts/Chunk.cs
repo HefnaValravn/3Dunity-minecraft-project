@@ -358,7 +358,7 @@ public class Chunk : MonoBehaviour
 
         for (int y = startY; y >= 1; y--) // Start at 1 to avoid checking y-1 < 0
         {
-            if (y <= waterLevel)
+            if (y + 5 <= waterLevel)
             {
                 Debug.Log($"Skipping Y level {y} because it's below water level {waterLevel}");
                 continue;
