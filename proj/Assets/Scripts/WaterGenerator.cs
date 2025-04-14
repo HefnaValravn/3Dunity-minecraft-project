@@ -81,8 +81,6 @@ public class WaterGenerator : MonoBehaviour
         float xStep = sizeX / (float)xSquares;
         float zStep = sizeZ / (float)zSquares;
 
-        float uvScale = 0.95f;
-
         // Create vertices and UV coordinates
         for (int z = 0; z <= zSquares; z++)
         {

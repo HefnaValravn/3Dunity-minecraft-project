@@ -324,6 +324,15 @@ public class Chunk : MonoBehaviour
         portalCoreMaterial.SetFloat("_Speed", 3f);
         portalCoreMaterial.SetFloat("_Transparency", 0.8f);
 
+        // Set particle properties if they exist in the shader
+        if (portalCoreShader.FindPropertyIndex("_ParticleColor") != -1)
+        {
+            portalCoreMaterial.SetColor("_ParticleColor", new Color(0.9f, 0.6f, 1.0f, 1.0f));
+            portalCoreMaterial.SetFloat("_ParticleCount", 15f);
+            portalCoreMaterial.SetFloat("_ParticleSpeed", 1.5f);
+            portalCoreMaterial.SetFloat("_ParticleSize", 0.01f);
+        }
+
         return portalCoreMaterial;
     }
 
@@ -331,6 +340,14 @@ public class Chunk : MonoBehaviour
 
     private Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
     {
+        // Get water level from ChunkManager
+        int waterLevel = 62; // Default water level
+        ChunkManager chunkManager = FindFirstObjectByType<ChunkManager>();
+        if (chunkManager != null)
+        {
+            waterLevel = chunkManager.waterLevel;
+        }
+
         // Start from 10 blocks below the top to avoid checking empty air space
         int startY = Mathf.Min(CHUNK_SIZE_Y - 10, CHUNK_SIZE_Y - 1);
 
@@ -340,6 +357,12 @@ public class Chunk : MonoBehaviour
 
         for (int y = startY; y >= 1; y--) // Start at 1 to avoid checking y-1 < 0
         {
+            if (y <= waterLevel)
+            {
+                Debug.Log($"Skipping Y level {y} because it's below water level {waterLevel}");
+                continue;
+            }
+
             for (int x = 6; x < CHUNK_SIZE_X - 7; x++)
             {
                 for (int z = 6; z < CHUNK_SIZE_Z - 7; z++)
@@ -422,7 +445,7 @@ public class Chunk : MonoBehaviour
         // Try to find suitable Y for center placement
         for (int y = startY; y >= 1; y--)
         {
-            if (blocks[centerX, y, centerZ] == BlockType.Grass)
+            if (blocks[centerX, y, centerZ] == BlockType.Grass && y > waterLevel)
             {
                 Debug.Log($"Using fallback portal location at center: ({centerX},{y},{centerZ})");
                 return new Vector2(centerX, centerZ);
@@ -642,10 +665,42 @@ public class Chunk : MonoBehaviour
                 vp.playbackSpeed = 1.2f;
                 vp.Play();
             };
+            // Calculate the portal dimensions based on min/max values
+            Vector3 portalDimensions = new Vector3(
+                maxX - minX + 1,  // Width
+                maxY - minY + 1,  // Height
+                0.1f              // Depth
+            );
 
-
+            // Add portal particles
+            AddPortalParticles(portalPlane, portalDimensions);
 
         }
+
+    }
+
+    private void AddPortalParticles(GameObject portalPlane, Vector3 portalSize)
+    {
+        // Front side particles
+        GameObject frontParticlesObj = new GameObject("PortalParticles_Front");
+        frontParticlesObj.transform.SetParent(portalPlane.transform);
+        frontParticlesObj.transform.localPosition = portalFramePosition;
+
+        // Add and initialize the front particle system
+        PortalParticleSystem frontParticleSystem = frontParticlesObj.AddComponent<PortalParticleSystem>();
+        frontParticleSystem.Initialize(portalPlane.transform, portalSize);
+
+        // Back side particles - create a separate particle system for the back side
+        GameObject backParticlesObj = new GameObject("PortalParticles_Back");
+        backParticlesObj.transform.SetParent(portalPlane.transform);
+        backParticlesObj.transform.localPosition = portalFramePosition;
+
+        // Rotate the back particle system 180 degrees around Y-axis to face the opposite direction
+        backParticlesObj.transform.localRotation = Quaternion.Euler(0, 180, 0);
+
+        // Add and initialize the back particle system
+        PortalParticleSystem backParticleSystem = backParticlesObj.AddComponent<PortalParticleSystem>();
+        backParticleSystem.Initialize(portalPlane.transform, portalSize);
 
     }
 
