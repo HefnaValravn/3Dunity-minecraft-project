@@ -252,18 +252,23 @@ public class WaterGenerator : MonoBehaviour
                     }
                 }
 
-                // If terrain is at or above water level, make water higher here
-                if (terrainHeight >= waterLevel - 1)
+
+                if (terrainHeight >= waterLevel - 5 && terrainHeight <= waterLevel + 2)
                 {
-                    heightOffsets[i] = 0.2f;  // Raise water slightly
-                }
-                // If terrain is just below water level, create a shore gradient
-                else if (terrainHeight >= waterLevel - 3)
-                {
-                    // Create a gradient effect for shore
-                    heightOffsets[i] = 0.1f;
+                    // If terrain is at or above water level, make water higher here
+                    if (terrainHeight >= waterLevel - 1)
+                    {
+                        heightOffsets[i] = 0.2f;  // Raise water slightly
+                    }
+                    // If terrain is just below water level, create a shore gradient
+                    else if (terrainHeight >= waterLevel - 3)
+                    {
+                        // Create a gradient effect for shore
+                        heightOffsets[i] = 0.1f;
+                    }
                 }
             }
+
         }
     }
 }
