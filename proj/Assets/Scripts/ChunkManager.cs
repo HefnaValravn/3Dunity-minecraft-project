@@ -30,6 +30,24 @@ public class ChunkManager : MonoBehaviour
     private Dictionary<int2, GameObject> waterObjects = new Dictionary<int2, GameObject>();
 
 
+    [Header("Performance Settings")]
+    public int chunksPerFrame = 3;
+    public float generationDelay = 0.02f;
+    private Queue<int2> chunkGenerationQueue = new Queue<int2>();
+    private bool isGeneratingChunks = false;
+    private System.Collections.IEnumerator currentGenerationRoutine;
+
+
+    [Header("Dynamic View Distance")]
+    public bool dynamicViewDistance = true;
+    public int minViewDistance = 3;
+    public int maxViewDistance = 10;
+    public float targetFrameRate = 60.0f;
+    private float frameRateCheckTimer = 0f;
+    private float frameRateCheckInterval = 1.0f;
+    private float currentFrameRate = 0f;
+
+
 
 
     void Start()
@@ -44,6 +62,32 @@ public class ChunkManager : MonoBehaviour
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
         UpdateActiveCamera();
+        // Update frame rate calculation
+        if (dynamicViewDistance)
+        {
+            frameRateCheckTimer += Time.deltaTime;
+
+            if (frameRateCheckTimer >= frameRateCheckInterval)
+            {
+                frameRateCheckTimer = 0f;
+                currentFrameRate = 1.0f / Time.smoothDeltaTime;
+
+                // Adjust view distance based on frame rate
+                if (currentFrameRate < targetFrameRate * 0.8f && viewDistance > minViewDistance)
+                {
+                    // Frame rate too low, reduce view distance
+                    viewDistance--;
+                    Debug.Log($"Reduced view distance to {viewDistance} (FPS: {currentFrameRate:F1})");
+                }
+                else if (currentFrameRate > targetFrameRate * 1.2f && viewDistance < maxViewDistance)
+                {
+                    // Frame rate good, try increasing view distance
+                    viewDistance++;
+                    Debug.Log($"Increased view distance to {viewDistance} (FPS: {currentFrameRate:F1})");
+                }
+            }
+        }
+
         UpdateChunks();
     }
 
@@ -113,40 +157,56 @@ public class ChunkManager : MonoBehaviour
         int2 playerChunkCoord = GetChunkCoord(player.position);
         HashSet<int2> requiredChunks = GetRequiredChunks(playerChunkCoord);
 
-
-
-        if (prioritizeViewDirection)
+        // Find all chunks that need to be loaded
+        List<int2> chunksToLoad = new List<int2>();
+        foreach (int2 coord in requiredChunks)
         {
-            PrioritizeChunksByViewDirection(requiredChunks);
-            // Process the prioritized chunks
+            if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+            {
+                chunksToLoad.Add(coord);
+            }
+        }
+
+        if (prioritizeViewDirection && chunksToLoad.Count > 0)
+        {
+            PrioritizeChunksByViewDirection(chunksToLoad);
+
+            // Queue the prioritized chunks
             foreach (int2 coord in prioritizedChunks)
             {
-                if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+                if (!chunkGenerationQueue.Contains(coord))
                 {
-                    LoadChunk(coord);
+                    chunkGenerationQueue.Enqueue(coord);
                 }
             }
         }
         else
         {
-            // Reuse or create new chunks if necessary
-            foreach (int2 coord in requiredChunks)
+            // Queue all chunks that need to be loaded
+            foreach (int2 coord in chunksToLoad)
             {
-                if (!activeChunks.ContainsKey(coord) && IsChunkVisible(coord.x, coord.y))
+                if (!chunkGenerationQueue.Contains(coord))
                 {
-                    LoadChunk(coord);
+                    chunkGenerationQueue.Enqueue(coord);
                 }
             }
         }
 
-        // Remove chunks that are no longer needed
-        List<int2> chunksToRemove = new List<int2>();
+        // Start the chunk generation coroutine if it's not already running
+        if (!isGeneratingChunks && chunkGenerationQueue.Count > 0)
+        {
+            currentGenerationRoutine = GenerateChunksOverTime();
+            StartCoroutine(currentGenerationRoutine);
+        }
 
+        // Remove chunks that are no longer needed - one at a time to avoid lag spikes
+        List<int2> chunksToRemove = new List<int2>();
         foreach (var coord in activeChunks.Keys)
         {
             if (!requiredChunks.Contains(coord))
             {
                 chunksToRemove.Add(coord);
+                break; // Just remove one per frame to reduce lag
             }
         }
 
@@ -156,14 +216,48 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
+    private System.Collections.IEnumerator GenerateChunksOverTime()
+    {
+        isGeneratingChunks = true;
 
-    private void PrioritizeChunksByViewDirection(HashSet<int2> requiredChunks)
+        while (chunkGenerationQueue.Count > 0)
+        {
+            // Process a limited number of chunks per frame
+            int chunksToProcess = Mathf.Min(chunksPerFrame, chunkGenerationQueue.Count);
+
+            for (int i = 0; i < chunksToProcess; i++)
+            {
+                int2 coord = chunkGenerationQueue.Dequeue();
+
+                // Skip if the chunk has already been created (could happen if player moves back and forth)
+                if (activeChunks.ContainsKey(coord))
+                    continue;
+
+                // Load the chunk
+                LoadChunkImmediate(coord);
+
+                // Wait a tiny bit to spread CPU usage within the frame
+                yield return null;
+            }
+
+            // Wait for the next frame or specified delay
+            if (generationDelay > 0)
+                yield return new WaitForSeconds(generationDelay);
+            else
+                yield return null;
+        }
+
+        isGeneratingChunks = false;
+    }
+
+
+    private void PrioritizeChunksByViewDirection(List<int2> chunksToLoad)
     {
         // Clear the previous prioritized list
         prioritizedChunks.Clear();
 
         // Add all required chunks to the prioritized list
-        prioritizedChunks.AddRange(requiredChunks);
+        prioritizedChunks.AddRange(chunksToLoad);
 
         // Get view direction as a 2D vector (xz plane)
         Vector3 viewDir = activeCamera.transform.forward;
@@ -207,7 +301,8 @@ public class ChunkManager : MonoBehaviour
     }
 
 
-    private void LoadChunk(int2 coord)
+    // Rename the current LoadChunk to LoadChunkImmediate
+    private void LoadChunkImmediate(int2 coord)
     {
         Chunk chunk;
 
@@ -226,11 +321,25 @@ public class ChunkManager : MonoBehaviour
         }
 
         chunk.terrainGenerator = terrainGenerator;
+
+        // Start a coroutine for multi-phase chunk generation
+        StartCoroutine(GenerateChunkPhases(chunk, coord));
+    }
+
+    // Add a multi-phase chunk generation coroutine
+    private System.Collections.IEnumerator GenerateChunkPhases(Chunk chunk, int2 coord)
+    {
+        // Phase 1: Initialize terrain data
         chunk.InitializeChunk();
         chunk.SetPosition();
-        chunk.GenerateMesh();
         activeChunks[coord] = chunk;
+        yield return null; // Wait one frame
 
+        // Phase 2: Generate mesh
+        chunk.GenerateMesh();
+        yield return null; // Wait another frame
+
+        // Phase 3: Generate water
         LoadWater(coord);
     }
 

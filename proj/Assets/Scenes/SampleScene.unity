@@ -928,6 +928,12 @@ MonoBehaviour:
   waterMaterial: {fileID: 2100000, guid: 85943d0ad10a54885812c05a4d8686e8, type: 2}
   waterLevel: 62
   waterTesselation: 8
+  chunksPerFrame: 3
+  generationDelay: 0.02
+  dynamicViewDistance: 1
+  minViewDistance: 3
+  maxViewDistance: 10
+  targetFrameRate: 70
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0
@@ -990,7 +996,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 935be0016ff65ac6ea23570cf2b722a7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 10
+  speed: 5
   bodyTransform: {fileID: 1728259164}
 --- !u!54 &1372197570
 Rigidbody:
