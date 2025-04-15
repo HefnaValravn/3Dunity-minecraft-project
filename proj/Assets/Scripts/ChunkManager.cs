@@ -62,6 +62,12 @@ public class ChunkManager : MonoBehaviour
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
         UpdateActiveCamera();
+        UpdateChunks();
+    }
+
+    void Update()
+    {
+        UpdateActiveCamera();
         // Update frame rate calculation
         if (dynamicViewDistance)
         {
@@ -87,13 +93,6 @@ public class ChunkManager : MonoBehaviour
                 }
             }
         }
-
-        UpdateChunks();
-    }
-
-    void Update()
-    {
-        UpdateActiveCamera();
         UpdateChunks();
     }
 
