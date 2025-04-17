@@ -15,6 +15,7 @@ public class PortalParticleSystem : MonoBehaviour
     
     private ParticleSystem gudparticleSystem;
     private Transform portalTransform;
+    
     private Vector3 portalSize;
 
     public void Initialize(Transform portalTransform, Vector3 size)

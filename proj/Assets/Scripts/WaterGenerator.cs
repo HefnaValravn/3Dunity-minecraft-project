@@ -15,7 +15,6 @@ public class WaterGenerator : MonoBehaviour
     private Vector3[] originalVertices;
     private Vector3[] worldPositions; //positions of water planes
     private float[] heightOffsets;
-    private Vector3[] normals;
     private Cubemap defaultSkybox;
 
 
@@ -43,7 +42,6 @@ public class WaterGenerator : MonoBehaviour
 
         // Store original vertices for animation
         originalVertices = waterMesh.vertices;
-        normals = new Vector3[originalVertices.Length];
 
         // Position the water
         transform.position = position + new Vector3(0, waterLevel + 0.2f, 0);
