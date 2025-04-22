@@ -5,8 +5,8 @@ public class WaterGenerator : MonoBehaviour
     [Header("Water Settings")]
     public Material waterMaterial;
     public int waterLevel = 62; // Height at which water will be placed
-    public float waterAmplitude = 0.1f; // How much the vertices move up/down
-    public float waterFrequency = 1.0f; // Speed of water animation
+    public float waterAmplitude = 0.15f; // How much the vertices move up/down
+    public float waterFrequency = 1.1f; // Speed of water animation
     public float waveFrequency = 2.5f;
     public float finiteDifferenceDelta = 0.01f; //for finite differencing
 
