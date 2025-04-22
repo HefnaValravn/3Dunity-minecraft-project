@@ -40,7 +40,7 @@ public class ChunkManager : MonoBehaviour
 
     [Header("Dynamic View Distance")]
     public bool dynamicViewDistance = true;
-    public int minViewDistance = 3;
+    public int minViewDistance = 5;
     public int maxViewDistance = 10;
     public float targetFrameRate = 60.0f;
     private float frameRateCheckTimer = 0f;
@@ -362,15 +362,27 @@ public class ChunkManager : MonoBehaviour
     private HashSet<int2> GetRequiredChunks(int2 playerChunk)
     {
         HashSet<int2> requiredChunks = new HashSet<int2>();
-
-        for (int x = -viewDistance; x <= viewDistance; x++)
+    
+    // Calculate the squared view distance for faster distance calculations
+    // Using squared distance avoids costly square root operations
+    float viewDistanceSquared = viewDistance * viewDistance;
+    
+    // Check all chunks in a square boundary and filter by circular distance
+    for (int x = -viewDistance; x <= viewDistance; x++)
+    {
+        for (int z = -viewDistance; z <= viewDistance; z++)
         {
-            for (int y = -viewDistance; y <= viewDistance; y++)
+            // Calculate squared distance from player's chunk
+            float distanceSquared = x * x + z * z;
+            
+            // Only include chunks within the circular boundary
+            if (distanceSquared <= viewDistanceSquared)
             {
-                requiredChunks.Add(new int2(playerChunk.x + x, playerChunk.y + y));
+                requiredChunks.Add(new int2(playerChunk.x + x, playerChunk.y + z));
             }
         }
-
-        return requiredChunks;
+    }
+    
+    return requiredChunks;
     }
 }

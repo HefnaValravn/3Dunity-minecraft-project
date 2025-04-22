@@ -7,6 +7,7 @@ public class WaterGenerator : MonoBehaviour
     public int waterLevel = 62; // Height at which water will be placed
     public float waterAmplitude = 0.1f; // How much the vertices move up/down
     public float waterFrequency = 1.0f; // Speed of water animation
+    public float waveFrequency = 2.5f;
     public float finiteDifferenceDelta = 0.01f; //for finite differencing
 
     private Mesh waterMesh;
@@ -45,7 +46,7 @@ public class WaterGenerator : MonoBehaviour
 
         // Position the water
         transform.position = position + new Vector3(0, waterLevel + 0.7f, 0);
-        
+
         // Calculate and store world positions for each vertex
         worldPositions = new Vector3[originalVertices.Length];
         for (int i = 0; i < originalVertices.Length; i++)
@@ -176,17 +177,21 @@ public class WaterGenerator : MonoBehaviour
     // Calculate height at a specific world position using our wave function
     private float CalculateHeight(float x, float z, float time)
     {
-        float xCoord = x * 0.3f;
-        float zCoord = z * 0.3f;
+        float xCoord = x * 0.3f * waveFrequency;
+        float zCoord = z * 0.3f * waveFrequency;
 
         // Multiple combined sin functions for more interesting wave effects
         float height =
-            Mathf.Sin(xCoord + time) * 0.3f +
-            Mathf.Sin(xCoord * 2.0f + time * 1.1f) * 0.2f +
-            Mathf.Sin(zCoord * 0.8f + time * 1.2f) * 0.3f +
-            Mathf.Sin(zCoord * 1.6f + time * 0.9f) * 0.15f +
-            Mathf.Sin((xCoord + zCoord) * 0.5f + time * 0.8f) * 0.2f +
-            Mathf.Sin((xCoord - zCoord) * 0.7f + time * 1.3f) * 0.1f;
+            Mathf.Sin(xCoord * 3.0f + time * 1.8f) * 0.15f +         // Small fast X waves
+            Mathf.Sin(xCoord * 5.0f + time * 2.2f) * 0.08f +         // Very small, very fast X waves
+            Mathf.Sin(zCoord * 2.5f + time * 1.7f) * 0.15f +         // Small fast Z waves
+            Mathf.Sin(zCoord * 4.8f + time * 1.4f) * 0.07f +         // Very small Z waves
+            //Diagonal patterns for cross-waves
+            Mathf.Sin((xCoord + zCoord) * 2.2f + time * 1.5f) * 0.1f +  // Diagonal waves
+            Mathf.Sin((xCoord - zCoord) * 2.5f + time * 1.3f) * 0.1f +  // Opposite diagonal
+            //Add some subtle larger waves for variation (reduced amplitude)
+            Mathf.Sin(xCoord * 0.4f + time * 0.5f) * 0.05f +          // Subtle longer waves
+            Mathf.Sin(zCoord * 0.3f + time * 0.4f) * 0.05f;           // Subtle longer waves
 
         height *= waterAmplitude;
         return height;
