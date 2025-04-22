@@ -44,7 +44,7 @@ public class WaterGenerator : MonoBehaviour
         originalVertices = waterMesh.vertices;
 
         // Position the water
-        transform.position = position + new Vector3(0, waterLevel + 0.2f, 0);
+        transform.position = position + new Vector3(0, waterLevel + 0.7f, 0);
         
         // Calculate and store world positions for each vertex
         worldPositions = new Vector3[originalVertices.Length];

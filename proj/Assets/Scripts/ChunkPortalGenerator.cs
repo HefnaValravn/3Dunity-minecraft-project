@@ -245,7 +245,7 @@ public class ChunkPortalGenerator
         // Front side particles
         GameObject frontParticlesObj = new GameObject("PortalParticles_Front");
         frontParticlesObj.transform.SetParent(portalPlane.transform);
-        frontParticlesObj.transform.localPosition = new Vector3(gudposition.x, gudposition.y + 3, gudposition.z);
+        frontParticlesObj.transform.localPosition = new Vector3(gudposition.x + 1, gudposition.y + 3, gudposition.z);
 
         // Add and initialize the front particle system
         PortalParticleSystem frontParticleSystem = frontParticlesObj.AddComponent<PortalParticleSystem>();
@@ -254,7 +254,7 @@ public class ChunkPortalGenerator
         // Back side particles
         GameObject backParticlesObj = new GameObject("PortalParticles_Back");
         backParticlesObj.transform.SetParent(portalPlane.transform);
-        backParticlesObj.transform.localPosition = new Vector3(gudposition.x, gudposition.y + 3, gudposition.z);
+        backParticlesObj.transform.localPosition = new Vector3(gudposition.x + 1, gudposition.y + 3, gudposition.z);
 
         // Rotate the back particle system 180 degrees around Y-axis
         backParticlesObj.transform.localRotation = Quaternion.Euler(0, 180, 0);

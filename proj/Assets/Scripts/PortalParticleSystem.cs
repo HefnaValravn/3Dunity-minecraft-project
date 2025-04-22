@@ -21,7 +21,7 @@ public class PortalParticleSystem : MonoBehaviour
     public void Initialize(Transform portalTransform, Vector3 size)
     {
         this.portalTransform = portalTransform;
-        this.portalSize = size;
+        portalSize = size;
         SetupParticleSystem();
     }
 
