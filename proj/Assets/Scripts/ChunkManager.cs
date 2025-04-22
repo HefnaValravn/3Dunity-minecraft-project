@@ -40,7 +40,7 @@ public class ChunkManager : MonoBehaviour
 
     [Header("Dynamic View Distance")]
     public bool dynamicViewDistance = true;
-    public int minViewDistance = 5;
+    public int minViewDistance = 4;
     public int maxViewDistance = 10;
     public float targetFrameRate = 60.0f;
     private float frameRateCheckTimer = 0f;
