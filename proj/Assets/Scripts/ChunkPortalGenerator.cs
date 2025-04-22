@@ -398,7 +398,7 @@ public class ChunkPortalGenerator
         portalCoreMaterial.SetColor("_SecondaryColor", new Color(0.7f, 0.3f, 1f, 0.6f));
         portalCoreMaterial.SetFloat("_Intensity", 1.2f);
         portalCoreMaterial.SetFloat("_Speed", 3f);
-        portalCoreMaterial.SetFloat("_Transparency", 0.8f);
+        portalCoreMaterial.SetFloat("_Transparency", 0.9f);
 
         // Set particle properties if they exist in the shader
         if (portalCoreShader.FindPropertyIndex("_ParticleColor") != -1)
