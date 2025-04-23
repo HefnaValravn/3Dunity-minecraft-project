@@ -4,8 +4,6 @@ Shader "Custom/WaterShader"
     {
         _MainColor ("Water Color", Color) = (0.2, 0.5, 0.7, 0.6)
         _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.7
-        _WaveSpeed ("Wave Speed", Range(0, 5)) = 1.0
-        _WaveAmplitude ("Wave Amplitude", Range(0, 1)) = 0.1
     }
 
     SubShader
@@ -87,7 +85,8 @@ Shader "Custom/WaterShader"
 
                 // Calculate transparency based on view angle (more transparent when looking straight down)
                 // When dotProduct is close to 1 (looking straight down), water should be more transparent
-                waterColor.a = lerp(_MainColor.a, _MainColor.a * 0.3, dotProduct);
+                waterColor.a = lerp(_MainColor.a * 0.3, _MainColor.a, pow(dotProduct, 2.0));
+
 
                 // Calculate final color by blending reflection and water color
                 fixed4 finalColor = lerp(waterColor, reflectionColor, reflectivity);
