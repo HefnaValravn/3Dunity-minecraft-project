@@ -5,6 +5,8 @@ Shader "Custom/portalCore" {
         _Intensity ("Intensity", Range(0, 2)) = 1
         _Speed ("Animation Speed", Range(0, 10)) = 2
         _Transparency ("Transparency", Range(0, 1)) = 0.7
+        _WaveStrength ("Wave Distortion", Range(0, 0.1)) = 0.05
+        _WaveSpeed ("Wave Speed", Range(0, 5)) = 4
     }
     SubShader {
         Tags {
@@ -33,6 +35,8 @@ Shader "Custom/portalCore" {
             float _Intensity;
             float _Speed;
             float _Transparency;
+            float _WaveStrength;
+            float _WaveSpeed;
             CBUFFER_END
 
             TEXTURE2D(_MainTex);
@@ -56,8 +60,32 @@ Shader "Custom/portalCore" {
             }
 
             half4 frag(V2F input) : SV_Target {
+                float2 uv = input.uv;
+                float2 center = float2(0.5, 0.5);
+                float2 uvFromCenter = uv - center;
+                float dist = length(uvFromCenter);
+
+                // Time values for different wave effects
+                float t1 = _Time.y * _WaveSpeed;
+                float t2 = _Time.y * _WaveSpeed * 0.8;
+                float t3 = _Time.y * _WaveSpeed * 1.2;
+
+                // Create concentric ripples moving outward
+                float wave1 = sin(dist * 20.0 - t1 * 2.0) * 0.5 + 0.5;
+                float wave2 = sin(dist * 15.0 - t2 * 1.5) * 0.5 + 0.5;
+                float wave3 = sin((uv.x + uv.y) * 12.0 - t3) * 0.5 + 0.5;
+
+                // Combine waves and fade effect toward edges
+                float combinedWave = (wave1 + wave2 + wave3) * 0.5;
+                combinedWave *= smoothstep(0.8, 0.2, dist * 1.2); // Stronger in center
+
+                // Apply wave distortion to UVs
+                float2 direction = normalize(uvFromCenter + 0.00001); // Avoid division by zero
+                float2 distortion = direction * combinedWave * _WaveStrength;
+                float2 distortedUV = uv + distortion;
+
                 // Sample the video texture
-                half4 videoColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, input.uv);
+                half4 videoColor = SAMPLE_TEXTURE2D(_MainTex, sampler_MainTex, distortedUV);
 
                 // Time - based animation
                 float t = _Time.y * _Speed;
