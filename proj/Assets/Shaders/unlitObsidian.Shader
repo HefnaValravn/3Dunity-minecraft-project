@@ -38,7 +38,7 @@ Shader "Custom/unlitObsidian"
             fixed4 _Color;
             sampler2D _MainTex;
 
-            float heightmap(float2 uv)
+            float dispMap(float2 uv)
             {
                 return sin(uv.x * 30) * cos(uv.y * 30) * _HeightScale;
             }
@@ -54,10 +54,10 @@ Shader "Custom/unlitObsidian"
 
             half4 frag(v2f i) : SV_Target
             {
-                // Normal from heightmap
-                float h = heightmap(i.uv);
-                float dx = heightmap(i.uv + float2(0.01, 0)) - h;
-                float dy = heightmap(i.uv + float2(0, 0.01)) - h;
+                // Normal from dispMap
+                float h = dispMap(i.uv);
+                float dx = dispMap(i.uv + float2(0.01, 0)) - h;
+                float dy = dispMap(i.uv + float2(0, 0.01)) - h;
                 float3 normal = normalize(float3(-dx, -dy, 1.0));
 
 

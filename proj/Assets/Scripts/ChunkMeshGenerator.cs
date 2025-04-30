@@ -273,11 +273,11 @@ public class ChunkMeshGenerator
             
         Material unlitObsidianMaterial = new Material(unlitObsidianShader);
 
-        // Generate heightmap for normals
-        Texture2D heightMap = GenerateProceduralHeightmap(128, 128);
-        Texture2D normalMap = CalculateNormalsFromHeightmap(heightMap);
+        // Generate dispMap for normals
+        Texture2D dispMap = GenerateProceduraldispMap(128, 128);
+        Texture2D normalMap = CalculateNormalsFromdispMap(dispMap);
 
-        unlitObsidianMaterial.SetTexture("_HeightMap", heightMap);
+        unlitObsidianMaterial.SetTexture("_dispMap", dispMap);
         unlitObsidianMaterial.SetTexture("_NormalMap", normalMap);
         unlitObsidianMaterial.SetColor("_BaseColor", new Color(0.2f, 0.2f, 0.3f, 1f));
         unlitObsidianMaterial.SetFloat("_Metallic", 0.5f);
@@ -286,9 +286,9 @@ public class ChunkMeshGenerator
         return unlitObsidianMaterial;
     }
 
-    private Texture2D GenerateProceduralHeightmap(int width, int height)
+    private Texture2D GenerateProceduraldispMap(int width, int height)
     {
-        Texture2D heightMap = new Texture2D(width, height, TextureFormat.RFloat, false);
+        Texture2D dispMap = new Texture2D(width, height, TextureFormat.RFloat, false);
 
         for (int y = 0; y < height; y++)
         {
@@ -310,18 +310,18 @@ public class ChunkMeshGenerator
                     amplitude *= 0.5f;
                 }
 
-                heightMap.SetPixel(x, y, new Color(noiseValue, noiseValue, noiseValue, 1f));
+                dispMap.SetPixel(x, y, new Color(noiseValue, noiseValue, noiseValue, 1f));
             }
         }
 
-        heightMap.Apply();
-        return heightMap;
+        dispMap.Apply();
+        return dispMap;
     }
 
-    private Texture2D CalculateNormalsFromHeightmap(Texture2D heightMap)
+    private Texture2D CalculateNormalsFromdispMap(Texture2D dispMap)
     {
-        int width = heightMap.width;
-        int height = heightMap.height;
+        int width = dispMap.width;
+        int height = dispMap.height;
         Texture2D normalMap = new Texture2D(width, height, TextureFormat.RGB24, false);
 
         for (int y = 1; y < height - 1; y++)
@@ -329,10 +329,10 @@ public class ChunkMeshGenerator
             for (int x = 1; x < width - 1; x++)
             {
                 // Calculate finite differences for normal generation
-                float left = heightMap.GetPixel(x - 1, y).r;
-                float right = heightMap.GetPixel(x + 1, y).r;
-                float top = heightMap.GetPixel(x, y - 1).r;
-                float bottom = heightMap.GetPixel(x, y + 1).r;
+                float left = dispMap.GetPixel(x - 1, y).r;
+                float right = dispMap.GetPixel(x + 1, y).r;
+                float top = dispMap.GetPixel(x, y - 1).r;
+                float bottom = dispMap.GetPixel(x, y + 1).r;
 
                 Vector3 normal = new Vector3(left - right, bottom - top, 2f).normalized;
 
