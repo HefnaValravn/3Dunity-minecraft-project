@@ -2,7 +2,7 @@ Shader "Custom/WaterShader"
 {
     Properties
     {
-        _MainColor ("Water Color", Color) = (0.2, 0.5, 0.7, 0.6)
+        _MainColor ("Water Color", Color) = (0.2, 0.5, 0.7, 0.4)
         _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.7
     }
 
