@@ -21,6 +21,17 @@ public class TerrainGenerator : MonoBehaviour
 
 
 
+    [Header("Landmark Settings")]
+    public float biomeNoiseScale = 0.003f; // Very low frequency for large biome regions
+    public float plainsFlatness = 0.8f; // How flat plains should be (0-1)
+
+
+    [Header("Mountain Settings")]
+    public float mountainsHeight = 2.5f; // Height multiplier for mountains
+    public float mountainsRoughness = 2.2f; // Additional octaves for mountains
+    public float maxPeakHeight = 0.6f; 
+
+
 
     [Header("Bedrock Settings")]
     public float bedrockNoiseScale = 0.05f;
@@ -76,12 +87,91 @@ public class TerrainGenerator : MonoBehaviour
     }
 
 
+    private float BiomeBlendFactor(float biomeValue, float threshold, float blendRange = 0.1f)
+    {
+        if (biomeValue < threshold - blendRange)
+            return 0;
+        if (biomeValue > threshold + blendRange)
+            return 1;
+
+        // Smooth transition in the blend range
+        return (biomeValue - (threshold - blendRange)) / (blendRange * 2);
+    }
+
+
     // Get terrain height at any world position
     public int GetTerrainHeight(float worldX, float worldZ)
     {
-        // Generate terrain height using fBm Perlin noise
-        float height = GeneratefBm(worldX, worldZ, noiseScale, octaves, persistence, lacunarity);
-        int terrainHeight = Mathf.FloorToInt(height * 30) + 50; // Scale & offset height
+        // Determine biome type using low-frequency noise
+        //in this context, biome = hill, plain or mountain
+        float biomeValue = Mathf.PerlinNoise(
+            (worldX + seed * 0.3f) * biomeNoiseScale,
+            (worldZ + seed * 0.3f) * biomeNoiseScale
+        );
+
+        // Generate base terrain height
+        float baseHeight = GeneratefBm(worldX, worldZ, noiseScale, octaves, persistence, lacunarity);
+
+        // Calculate mountains and plains features
+        float plainHeight = Mathf.Lerp(baseHeight, 0.5f, plainsFlatness);
+
+        // Mountain features with reduced extreme peaks
+        float extraDetail = GeneratefBm(
+            worldX, worldZ,
+            noiseScale * 2f,
+            Mathf.Min(octaves + 2, 8),
+            persistence * 0.8f,
+            lacunarity * 1.2f
+        ) * 0.3f;
+
+        float peakNoise = Mathf.PerlinNoise(
+            (worldX + seed * 0.7f) * noiseScale * 4f,
+            (worldZ + seed * 0.7f) * noiseScale * 4f
+        );
+
+        // Smoother peak calculation with clamping to prevent extreme heights
+        float peakHeight = 0;
+        if (peakNoise > 0.8f)
+        {
+            float peakFactor = Mathf.Pow(peakNoise - 0.8f, 1.5f) * 5f;
+            peakHeight = Mathf.Min(peakFactor, maxPeakHeight); // Cap peak height
+        }
+
+        float mountainHeight = baseHeight * mountainsHeight + extraDetail + peakHeight;
+
+        // Blend between biomes using smooth transitions
+        float plainBlend = BiomeBlendFactor(0.2f - biomeValue, 0, 0.1f); // Plains blend
+        float mountainBlend = BiomeBlendFactor(biomeValue - 0.75f, 0, 0.15f); // Mountain blend with wider transition
+
+        // Calculate normal hill height for transitional areas
+        float normalHeight = baseHeight;
+
+        // Final height based on blended biomes
+        float modifiedHeight;
+
+        if (plainBlend > 0 && mountainBlend > 0)
+        {
+            // Rare case: both plains and mountains influence (at biome boundaries)
+            float totalBlend = plainBlend + mountainBlend;
+            modifiedHeight = (plainHeight * plainBlend + mountainHeight * mountainBlend) / totalBlend;
+        }
+        else if (plainBlend > 0)
+        {
+            // Transition between plains and normal hills
+            modifiedHeight = Mathf.Lerp(normalHeight, plainHeight, plainBlend);
+        }
+        else if (mountainBlend > 0)
+        {
+            // Transition between normal hills and mountains
+            modifiedHeight = Mathf.Lerp(normalHeight, mountainHeight, mountainBlend);
+        }
+        else
+        {
+            // Normal hills
+            modifiedHeight = normalHeight;
+        }
+
+        int terrainHeight = Mathf.FloorToInt(modifiedHeight * 30) + 50;
 
         // Clamp to valid range
         return Mathf.Clamp(terrainHeight, GetBedrockHeight(worldX, worldZ) + 1, Chunk.CHUNK_SIZE_Y - 1);

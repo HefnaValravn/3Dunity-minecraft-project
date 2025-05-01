@@ -153,6 +153,10 @@ MonoBehaviour:
   persistence: 0.5
   lacunarity: 2.1
   seed: 0
+  biomeNoiseScale: 0.003
+  plainsFlatness: 0.8
+  mountainsHeight: 2.3
+  mountainsRoughness: 1.8
   bedrockNoiseScale: 0.05
   caveNoiseScale: 0.1
   caveDensityThreshold: 0.35
