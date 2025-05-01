@@ -157,14 +157,15 @@ MonoBehaviour:
   plainsFlatness: 0.8
   mountainsHeight: 2.3
   mountainsRoughness: 1.8
+  maxPeakHeight: 0.6
   bedrockNoiseScale: 0.05
-  caveNoiseScale: 0.1
-  caveDensityThreshold: 0.35
+  caveNoiseScale: 0.08
+  caveDensityThreshold: 0.4
   caveOctaves: 2
   cavePersistence: 0.5
   caveLacunarity: 2
   caveSeed: 0
-  caveEntranceThreshold: 0.75
+  caveEntranceThreshold: 0.7
   portalSeed: 0
 --- !u!4 &130113486
 Transform:

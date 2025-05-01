@@ -41,8 +41,8 @@ public class TerrainGenerator : MonoBehaviour
 
     //WARNING: THESE ARE THE ONLY PARAMETERS THAT SEEM TO WORK TO MAKE GOOD, BUT NOT TOO ABUNDANT, CAVES. DO NOT CHANGE caveNoiseScale AND caveDensityThreshold
     [Header("Cave Settings")]
-    public float caveNoiseScale = 0.1f; //controls size of caves. larger value, smaller cave, and viceversa
-    public float caveDensityThreshold = 0.35f; // controls how many caves to generate. larger value, less caves, and viceversa
+    public float caveNoiseScale = 0.07f; //controls size of caves. larger value, smaller cave, and viceversa
+    public float caveDensityThreshold = 0.4f; // controls how many caves to generate. larger value, less caves, and viceversa
     public int caveOctaves = 2; // controls complexity/detail of caves
     public float cavePersistence = 0.5f;
     public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
