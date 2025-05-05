@@ -7,7 +7,7 @@ public class TerrainGenerator : MonoBehaviour
     [Header("Terrain Settings")]
 
     //controls the size/detail level of the noise pattern (small, spiky mountains with higher value or vast, rolling, smooth hills with lower value)
-    public float noiseScale = 0.012f;
+    public float noiseScale = 0.015f;
 
     //number of Perlin noise layers
     public int octaves = 6;
@@ -27,9 +27,9 @@ public class TerrainGenerator : MonoBehaviour
 
 
     [Header("Mountain Settings")]
-    public float mountainsHeight = 2.5f; // Height multiplier for mountains
-    public float mountainsRoughness = 2.2f; // Additional octaves for mountains
-    public float maxPeakHeight = 0.6f; 
+    public float mountainsHeight = 2.8f; // Height multiplier for mountains
+    public float mountainsRoughness = 2.4f; // Additional octaves for mountains
+    public float maxPeakHeight = 0.7f; 
 
 
 
@@ -41,16 +41,16 @@ public class TerrainGenerator : MonoBehaviour
 
     //WARNING: THESE ARE THE ONLY PARAMETERS THAT SEEM TO WORK TO MAKE GOOD, BUT NOT TOO ABUNDANT, CAVES. DO NOT CHANGE caveNoiseScale AND caveDensityThreshold
     [Header("Cave Settings")]
-    public float caveNoiseScale = 0.07f; //controls size of caves. larger value, smaller cave, and viceversa
-    public float caveDensityThreshold = 0.4f; // controls how many caves to generate. larger value, less caves, and viceversa
+    public float caveNoiseScale = 0.08f; //controls size of caves. larger value, smaller cave, and viceversa
+    public float caveDensityThreshold = 0.41f; // controls how many caves to generate. larger value, less caves, and viceversa
     public int caveOctaves = 2; // controls complexity/detail of caves
     public float cavePersistence = 0.5f;
-    public float caveLacunarity = 2.0f; // these two control roughness and variation in cave shapes
+    public float caveLacunarity = 2.2f; // these two control roughness and variation in cave shapes
     public int caveSeed = 0; // Different seed for caves
 
 
     [Header("Surface Cave Entrance Settings")]
-    public float caveEntranceThreshold = 0.75f;
+    public float caveEntranceThreshold = 0.71f;
 
 
     [Header("Portal Settings")]
