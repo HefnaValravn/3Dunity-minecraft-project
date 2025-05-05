@@ -22,11 +22,18 @@ public class WaterGenerator : MonoBehaviour
 
     private void Start()
     {
+        // Set the reflection mode to Skybox
+        RenderSettings.defaultReflectionMode = DefaultReflectionMode.Skybox;
+
+        // Update the environment reflections based on the current settings
+        DynamicGI.UpdateEnvironment();
+
         if (meshRenderer != null && meshRenderer.material != null)
         {
             // Set water to render after terrain
             meshRenderer.material.renderQueue = 3000; // Transparent queue
         }
+
     }
 
     public void Initialize(Vector3 position, int sizeX, int sizeZ, int xSquares, int zSquares)
@@ -80,21 +87,25 @@ public class WaterGenerator : MonoBehaviour
 
         // Make a copy of the original material to avoid modifying the asset
         Material waterMatInstance = new Material(waterMaterial);
-        
-        // Debug output of all shader properties
-        string[] properties = waterMatInstance.GetTexturePropertyNames();
-        Debug.Log("Available texture properties in water material:");
-        foreach (string prop in properties)
-        {
-            Debug.Log("- " + prop);
-        }
-        
+
         // Try specific property name from shader - must match EXACTLY as defined in shader
         if (properSkybox != null)
         {
-            waterMatInstance.SetTexture("_SkyboxTexture", properSkybox);
-            Debug.Log("Custom skybox assigned to water material: " + properSkybox.name);
+            if (waterMatInstance.HasProperty("_SkyboxTexture"))
+            {
+                waterMatInstance.SetTexture("_SkyboxTexture", properSkybox);
+                Debug.Log("Custom skybox assigned to water material: " + properSkybox.name);
+            }
+            else
+            {
+                Debug.LogError("Water material doesn't have _SkyboxTexture property. Check shader definition.");
+            }
         }
+        else
+        {
+            Debug.LogWarning("No properSkybox assigned in inspector. Will use default reflection probe.");
+        }
+
 
         // Set other shader parameters
         if (waterMatInstance.HasProperty("_WaveSpeed"))
@@ -102,10 +113,6 @@ public class WaterGenerator : MonoBehaviour
 
         if (waterMatInstance.HasProperty("_WaveAmplitude"))
             waterMatInstance.SetFloat("_WaveAmplitude", waterAmplitude);
-
-        // Explicitly set reflection strength in case it's not at default
-        if (waterMatInstance.HasProperty("_ReflectionStrength"))
-            waterMatInstance.SetFloat("_ReflectionStrength", 0.7f);
 
         // Set up transparency
         waterMatInstance.renderQueue = 3000; // Transparent queue

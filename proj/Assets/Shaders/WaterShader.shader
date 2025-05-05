@@ -2,10 +2,12 @@ Shader "Custom/WaterShader"
 {
     Properties
     {
-        _MainColor ("Water Color", Color) = (0.2, 0.5, 0.7, 0.4)
-        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 1
+        _MainColor ("Water Color", Color) = (0.2, 0.388, 0.698, 0.4)
+        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.5
         _Transparency ("Transparency", Range(0, 1)) = 0.5
-        _SkyboxTexture ("Skybox Cubemap", CUBE) = "" {}
+        _SkyboxTexture ("Skybox Texture", CUBE) = "" {}
+        _MainTex ("Water Texture", 2D) = "white" {}
+
     }
 
     SubShader
@@ -34,70 +36,58 @@ Shader "Custom/WaterShader"
             {
                 float2 uv : TEXCOORD0;
                 float4 vertex : SV_POSITION;
-                float3 worldPos : TEXCOORD1;
-                float3 worldNormal : TEXCOORD2;
-                float3 worldViewDir : TEXCOORD3;
+                float3 worldNormal : TEXCOORD1;
+                float3 viewDir : TEXCOORD2;
             };
 
             float4 _MainColor;
             float _ReflectionStrength;
-            float _WaveSpeed;
-            float _WaveAmplitude;
             float _Transparency;
             samplerCUBE _SkyboxTexture;
+            sampler2D _MainTex;
 
             v2f vert (appdata v)
             {
                 v2f o;
+                float3 worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+
                 o.vertex = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
-
-                o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
-                o.worldNormal = UnityObjectToWorldNormal(v.normal);
-                o.worldViewDir = normalize(WorldSpaceViewDir(v.vertex));
+                o.worldNormal = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
+                o.viewDir = normalize(UnityWorldSpaceViewDir(worldPos));
 
                 return o;
             }
 
             fixed4 frag (v2f i) : SV_Target
             {
-                // Get the normalized view direction
-                float3 viewDir = normalize(i.worldViewDir);
-
-                // Get the surface normal
+                // Normalize view direction and normal
+                float3 viewDir = normalize(i.viewDir);
                 float3 normal = normalize(i.worldNormal);
 
-                // Calculate reflection vector
+                // Reflection: reflect view direction over surface normal
                 float3 reflectionDir = reflect(-viewDir, normal);
-                
-                // Reflection direction is already in world space, no transformation needed
-                // Just normalize to ensure clean sampling
-                reflectionDir = normalize(reflectionDir);
                 fixed4 reflectionColor = texCUBE(_SkyboxTexture, reflectionDir);
 
-                // Calculate dot product between view direction and normal
-                // Closer to 0 = more parallel to surface (more reflective)
-                // Closer to 1 = more perpendicular to surface (more refractive)
-                float dotProduct = dot(viewDir, normal);
+                // Refraction: base color with transparency
+                fixed4 refractionColor = _MainColor;
+                refractionColor.a = _Transparency;
 
-                // Invert and scale the dot product to get reflectivity
-                // (1 - dotProduct) is higher when looking at glancing angles (more reflective)
-                float reflectivity = pow(1.0 - dotProduct, 4.0) * _ReflectionStrength;
+                // Blend weight based on angle between view and normal
+                float viewDot = saturate(dot(viewDir, normal)); // 0 (grazing) -> 1 (looking straight down)
 
-                // Create water base color with transparency
-                float4 waterColor = _MainColor;
+                float reflectAmount = pow(1.0 - viewDot, 1.0) * _ReflectionStrength;
+                float refractAmount = 1.0 - reflectAmount;
 
+                fixed4 texColor = tex2D(_MainTex, i.uv) * 5;
+                texColor = saturate(texColor);
+                refractionColor.rgb *= texColor.rgb;
 
-                waterColor.a *= _Transparency;
+                // Final blended color
+                fixed4 finalColor = reflectionColor * reflectAmount + refractionColor * refractAmount;
 
-                // Calculate transparency based on view angle (more transparent when looking straight down)
-                // When dotProduct is close to 1 (looking straight down), water should be more transparent
-                float viewTransparency = lerp(_MainColor.a * 0.3, _MainColor.a, pow(dotProduct, 2.0));
-
-                waterColor.a *= viewTransparency;
-
-                // Calculate final color by blending reflection and water color
-                fixed4 finalColor = lerp(waterColor, reflectionColor, reflectivity);
+                // Set final alpha (for transparency blending)
+                finalColor.a = refractionColor.a * refractAmount + reflectAmount;
 
                 return finalColor;
             }
