@@ -3,7 +3,9 @@ Shader "Custom/WaterShader"
     Properties
     {
         _MainColor ("Water Color", Color) = (0.2, 0.5, 0.7, 0.4)
-        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.7
+        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 1
+        _Transparency ("Transparency", Range(0, 1)) = 0.5
+        _SkyboxTexture ("Skybox Cubemap", CUBE) = "" {}
     }
 
     SubShader
@@ -41,8 +43,8 @@ Shader "Custom/WaterShader"
             float _ReflectionStrength;
             float _WaveSpeed;
             float _WaveAmplitude;
-
-            samplerCUBE _Skybox;
+            float _Transparency;
+            samplerCUBE _SkyboxTexture;
 
             v2f vert (appdata v)
             {
@@ -66,10 +68,12 @@ Shader "Custom/WaterShader"
                 float3 normal = normalize(i.worldNormal);
 
                 // Calculate reflection vector
-                float3 reflectionDir = reflect(- viewDir, normal);
-
-                // Sample the skybox using the reflection direction
-                fixed4 reflectionColor = texCUBE(_Skybox, reflectionDir);
+                float3 reflectionDir = reflect(-viewDir, normal);
+                
+                // Reflection direction is already in world space, no transformation needed
+                // Just normalize to ensure clean sampling
+                reflectionDir = normalize(reflectionDir);
+                fixed4 reflectionColor = texCUBE(_SkyboxTexture, reflectionDir);
 
                 // Calculate dot product between view direction and normal
                 // Closer to 0 = more parallel to surface (more reflective)
@@ -83,10 +87,14 @@ Shader "Custom/WaterShader"
                 // Create water base color with transparency
                 float4 waterColor = _MainColor;
 
+
+                waterColor.a *= _Transparency;
+
                 // Calculate transparency based on view angle (more transparent when looking straight down)
                 // When dotProduct is close to 1 (looking straight down), water should be more transparent
-                waterColor.a = lerp(_MainColor.a * 0.3, _MainColor.a, pow(dotProduct, 2.0));
+                float viewTransparency = lerp(_MainColor.a * 0.3, _MainColor.a, pow(dotProduct, 2.0));
 
+                waterColor.a *= viewTransparency;
 
                 // Calculate final color by blending reflection and water color
                 fixed4 finalColor = lerp(waterColor, reflectionColor, reflectivity);

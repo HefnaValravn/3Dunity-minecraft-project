@@ -28,6 +28,7 @@ public class ChunkManager : MonoBehaviour
     public int waterLevel = 50;
     public int waterTesselation = 8;
     private Dictionary<int2, GameObject> waterObjects = new Dictionary<int2, GameObject>();
+    public Cubemap skybox;
 
 
     [Header("Performance Settings")]
@@ -127,16 +128,13 @@ public class ChunkManager : MonoBehaviour
 
         // Add WaterGenerator component
         WaterGenerator waterGenerator = waterObject.AddComponent<WaterGenerator>();
+        waterGenerator.properSkybox = skybox;
         waterGenerator.waterMaterial = waterMaterial;
         waterGenerator.waterLevel = waterLevel;
 
         // Initialize water
         Vector3 chunkPosition = new Vector3(coord.x * chunkSize, 0, coord.y * chunkSize);
         waterGenerator.Initialize(chunkPosition, chunkSize, chunkSize, waterTesselation, waterTesselation);
-        if (activeChunks.TryGetValue(coord, out Chunk chunk) && chunk != null && chunk.blocks != null)
-        {
-            // waterGenerator.AdjustForTerrain(chunk.blocks, chunkSize, Chunk.CHUNK_SIZE_Y, chunkSize);
-        }
 
         // Store reference to water object
         waterObjects[coord] = waterObject;

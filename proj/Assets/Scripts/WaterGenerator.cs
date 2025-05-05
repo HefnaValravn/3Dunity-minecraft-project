@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Rendering;
 
 public class WaterGenerator : MonoBehaviour
 {
@@ -16,7 +17,7 @@ public class WaterGenerator : MonoBehaviour
     private Vector3[] originalVertices;
     private Vector3[] worldPositions; //positions of water planes
     private float[] heightOffsets;
-    private Cubemap defaultSkybox;
+    public Cubemap properSkybox;
 
 
     private void Start()
@@ -55,16 +56,12 @@ public class WaterGenerator : MonoBehaviour
             worldPositions[i] = transform.TransformPoint(originalVertices[i]);
         }
 
-
         // Set material
         SetupWaterMaterial();
-
     }
 
-    // Add this new method to your WaterGenerator class
     private void SetupWaterMaterial()
     {
-
         if (waterMaterial == null)
         {
             // Try to find the custom water shader
@@ -81,44 +78,40 @@ public class WaterGenerator : MonoBehaviour
             }
         }
 
-        if (waterMaterial.HasProperty("_Skybox") &&
-    (RenderSettings.skybox == null || !RenderSettings.skybox.HasProperty("_Cubemap")))
+        // Make a copy of the original material to avoid modifying the asset
+        Material waterMatInstance = new Material(waterMaterial);
+        
+        // Debug output of all shader properties
+        string[] properties = waterMatInstance.GetTexturePropertyNames();
+        Debug.Log("Available texture properties in water material:");
+        foreach (string prop in properties)
         {
-            // If there's no skybox, load a default one
-            if (defaultSkybox == null)
-                defaultSkybox = Resources.Load<Cubemap>("DefaultSkybox");
-
-            if (defaultSkybox != null)
-                waterMaterial.SetTexture("_Skybox", defaultSkybox);
+            Debug.Log("- " + prop);
+        }
+        
+        // Try specific property name from shader - must match EXACTLY as defined in shader
+        if (properSkybox != null)
+        {
+            waterMatInstance.SetTexture("_SkyboxTexture", properSkybox);
+            Debug.Log("Custom skybox assigned to water material: " + properSkybox.name);
         }
 
-        // Apply the skybox texture for reflection
-        if (RenderSettings.skybox != null)
-        {
-            if (waterMaterial.HasProperty("_Skybox"))
-            {
-                // Check different skybox texture property names
-                if (RenderSettings.skybox.HasProperty("_Tex"))
-                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_Tex"));
-                else if (RenderSettings.skybox.HasProperty("_Cubemap"))
-                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_Cubemap"));
-                else if (RenderSettings.skybox.HasProperty("_MainTex"))
-                    waterMaterial.SetTexture("_Skybox", RenderSettings.skybox.GetTexture("_MainTex"));
-            }
-        }
+        // Set other shader parameters
+        if (waterMatInstance.HasProperty("_WaveSpeed"))
+            waterMatInstance.SetFloat("_WaveSpeed", waterFrequency);
 
-        // Set shader parameters
-        if (waterMaterial.HasProperty("_WaveSpeed"))
-            waterMaterial.SetFloat("_WaveSpeed", waterFrequency);
+        if (waterMatInstance.HasProperty("_WaveAmplitude"))
+            waterMatInstance.SetFloat("_WaveAmplitude", waterAmplitude);
 
-        if (waterMaterial.HasProperty("_WaveAmplitude"))
-            waterMaterial.SetFloat("_WaveAmplitude", waterAmplitude);
+        // Explicitly set reflection strength in case it's not at default
+        if (waterMatInstance.HasProperty("_ReflectionStrength"))
+            waterMatInstance.SetFloat("_ReflectionStrength", 0.7f);
 
         // Set up transparency
-        waterMaterial.renderQueue = 3000; // Transparent queue
+        waterMatInstance.renderQueue = 3000; // Transparent queue
 
-        // Assign to renderer
-        meshRenderer.material = waterMaterial;
+        // Assign our instance to renderer
+        meshRenderer.material = waterMatInstance;
     }
 
     public Mesh GenerateTesselatedPlane(int sizeX, int sizeZ, int xSquares, int zSquares)
@@ -186,10 +179,10 @@ public class WaterGenerator : MonoBehaviour
             Mathf.Sin(xCoord * 5.0f + time * 2.2f) * 0.08f +         // Very small, very fast X waves
             Mathf.Sin(zCoord * 2.5f + time * 1.7f) * 0.15f +         // Small fast Z waves
             Mathf.Sin(zCoord * 4.8f + time * 1.4f) * 0.07f +         // Very small Z waves
-            //Diagonal patterns for cross-waves
+                                                                     //Diagonal patterns for cross-waves
             Mathf.Sin((xCoord + zCoord) * 2.2f + time * 1.5f) * 0.1f +  // Diagonal waves
             Mathf.Sin((xCoord - zCoord) * 2.5f + time * 1.3f) * 0.1f +  // Opposite diagonal
-            //Add some subtle larger waves for variation (reduced amplitude)
+                                                                        //Add some subtle larger waves for variation (reduced amplitude)
             Mathf.Sin(xCoord * 0.4f + time * 0.5f) * 0.05f +          // Subtle longer waves
             Mathf.Sin(zCoord * 0.3f + time * 0.4f) * 0.05f;           // Subtle longer waves
 
@@ -258,5 +251,4 @@ public class WaterGenerator : MonoBehaviour
         waterMesh.vertices = vertices;
         waterMesh.normals = updatedNormals;
     }
-
 }

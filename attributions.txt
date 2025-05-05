@@ -24,3 +24,6 @@ on it, so it looked a bit uglier than it looks now.
 The audio used in the skeleton video comes from (https://pixabay.com/sound-effects/basspulse-55275/)
 location on disc:
 '/mnt/ntfs/Nico/Misc/CS/3D Graphics/THE project/3dg-2425-mc-HefnaValravn/proj/Assets/StreamingAssets/Videos/gudskel.ogv'
+
+
+The skybox texture is from (https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky), and as described on their website, is free to use under CC0 license
