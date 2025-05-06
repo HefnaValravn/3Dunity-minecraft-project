@@ -5,7 +5,7 @@ public class ChunkMeshGenerator
 {
     private BlockType[,,] blocks;
     private int sizeX, sizeY, sizeZ;
-    
+
     private Material bedrockMaterial;
     private Material stoneMaterial;
     private Material dirtMaterial;
@@ -19,7 +19,7 @@ public class ChunkMeshGenerator
         this.sizeX = sizeX;
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
-        
+
         InitializeMaterials();
     }
 
@@ -30,7 +30,7 @@ public class ChunkMeshGenerator
         dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
         grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
-        obsidianMaterial = CreateUnlitObsidianMaterial();
+        obsidianMaterial = CreateObsidianMaterial();
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("proper_stone");
@@ -39,7 +39,7 @@ public class ChunkMeshGenerator
         Texture2D grassTopTexture = Resources.Load<Texture2D>("proper_grass_top");
         Texture2D obsidianTexture = Resources.Load<Texture2D>("final_obsidian");
 
-        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null || 
+        if (bedrockTexture == null || stoneTexture == null || dirtTexture == null ||
             grassSideTexture == null || grassTopTexture == null || obsidianTexture == null)
         {
             Debug.LogError("Failed to load textures!");
@@ -113,15 +113,15 @@ public class ChunkMeshGenerator
         mesh.RecalculateNormals();
 
         // Assign materials
-        materials = new Material[6] { 
-            bedrockMaterial, 
-            stoneMaterial, 
-            dirtMaterial, 
-            grassSideMaterial, 
-            grassTopMaterial, 
-            obsidianMaterial 
+        materials = new Material[6] {
+            bedrockMaterial,
+            stoneMaterial,
+            dirtMaterial,
+            grassSideMaterial,
+            grassTopMaterial,
+            obsidianMaterial
         };
-        
+
         return mesh;
     }
 
@@ -265,25 +265,26 @@ public class ChunkMeshGenerator
         return BlockUtility.IsBlockSolid(blocks, x, y, z, sizeX, sizeY, sizeZ);
     }
 
-    private Material CreateUnlitObsidianMaterial()
+    private Material CreateObsidianMaterial()
     {
-        Shader unlitObsidianShader = Shader.Find("Custom/unlitObsidian");
-        if (unlitObsidianShader == null)
-            unlitObsidianShader = Shader.Find("unlitObsidian");
-            
-        Material unlitObsidianMaterial = new Material(unlitObsidianShader);
+        Shader ObsidianShader = Shader.Find("Custom/Obsidian");
+        if (ObsidianShader == null)
+            ObsidianShader = Shader.Find("Obsidian");
+
+        Material ObsidianMaterial = new Material(ObsidianShader);
 
         // Generate dispMap for normals
         Texture2D dispMap = GenerateProceduraldispMap(128, 128);
         Texture2D normalMap = CalculateNormalsFromdispMap(dispMap);
 
-        unlitObsidianMaterial.SetTexture("_dispMap", dispMap);
-        unlitObsidianMaterial.SetTexture("_NormalMap", normalMap);
-        unlitObsidianMaterial.SetColor("_BaseColor", new Color(0.2f, 0.2f, 0.3f, 1f));
-        unlitObsidianMaterial.SetFloat("_Metallic", 0.5f);
-        unlitObsidianMaterial.SetFloat("_Smoothness", 0.7f);
+        ObsidianMaterial.SetTexture("_NormalMapTex", normalMap);
+        ObsidianMaterial.SetColor("_BaseColor", new Color(0.3f, 0.3f, 0.4f, 1f));
+        ObsidianMaterial.SetFloat("_Metallic", 0.5f);
+        ObsidianMaterial.SetFloat("_Smoothness", 0.7f);
+        ObsidianMaterial.SetFloat("_DispMapBlend", 0.5f); // 50% blend between procedural and texture
+        ObsidianMaterial.SetFloat("_DispTexScale", 10f);  // Scale the texture sampling
 
-        return unlitObsidianMaterial;
+        return ObsidianMaterial;
     }
 
     private Texture2D GenerateProceduraldispMap(int width, int height)
