@@ -288,7 +288,7 @@ Now, let's finally get to rendering. We'll start by rendering a single block.
 * First, we need some test data. Set the block at [0,0,0] to type `Bedrock`. Leave the rest as `Empty`.
 * We need also need a GameObject, Mesh, MeshFilter and Material. The easiest way is to add a GameObject with a Prefab, such as a Cube, and overwrite the Mesh with your new one
 * Last we need material to visualize bedrock. For now, use the default material, and set it's color to black.
-* Start by making a triangle. Check lab 3 for the code you need to to make the mesh. The points of the triangle should be (0,0,0), (1, 0, 0), and (0, 0, 1).
+* Start by making a triangle. The points of the triangle should be (0,0,0), (1, 0, 0), and (0, 0, 1). Check the [documentation](https://docs.unity3d.com/ScriptReference/Mesh-triangles.html) on what you need to implement. You can skip the uv's in the documentation (for now)
 * Extend the triangle with a second triangle to create a square. The fourth position should be (1, 0, 1).
 * Extend that to make a box. A box is 6 squares in 6 directions: top, bottom, left, right. The coordinates of the vertices are either 0 or 1. 
 * Use [Mesh.RecalculateNormals](https://docs.unity3d.com/ScriptReference/Mesh.RecalculateNormals.html) to automagically generate normals for your box. !!! These are not the final normals, we will make better ones later!!!!
@@ -503,7 +503,7 @@ The center doesn't have any blocks, but has a shimmering purple plane.
 Your job:
 * Every multiple of 10 chunks, add a portal to the chunk. Eg the chunks at (0,0), (10, 0), (0, 10), and (10, 10) all should have a portal, and the portal should sit mostly correctly on the terrain (the portal is on top of the terrain, and the center is not obscured by blocks),
 * Create a new unlit material for the obsidian blocks. Implement blinn-phong lighting. As a light source, only account for the directional light in the scene. You can use [_WorldSpaceLightPos0](https://docs.unity3d.com/Manual/SL-UnityShaderVariables.html) to get the direction. For the formulae, either refer to the slider, or if you want it explained a different way, [this chapter](https://developer.download.nvidia.com/CgTutorial/cg_tutorial_chapter05.html) made it click for me originally 
-* Use procedural generation to generate a heightmap, and use finite differencing to turn this into your normals. The color can be anything you want. 
+* Use procedural generation to generate bumps (or other interesting geometry). Do this by creating a displacment map (like a heightmap, but not always up. a 2D function that creates a float of how much the surface goes in or out). Use finite differencing to turn this into your normals. The color can be anything you want. 
 * Create geometry and material for the center of the portal. How you do this is completely free, just make sure the effect is interesting. Remember, you have a method to create a plane. You must use at least one custom shader. Spend at least an hour on this.
 
 Commit, and push. Don't forget to check that your 
@@ -521,6 +521,8 @@ Commit, and push. Don't forget to check that your
 * Again, send me an email. No need to get frustrated or stuck.
 
 ## Version list
+* 1.0.2 
+* 1.0.1 Replace mesh creation reference to lab 3 with a link to Unity documentation
 * 1.0.0 Checklist
 * 0.2.0 Added blinn phong lighing 
 * 0.1.1 Minor clarification
