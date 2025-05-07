@@ -11,6 +11,8 @@ Shader "Custom/Obsidian"
         [NoScaleOffset] _NormalMapTex("Normal Map Texture", 2D) = "bump" {}
         _DispMapBlend("Displacement Map Blend", Range(0, 1)) = 0.5
         _DispTexScale("Displacement Texture Scale", Range(1, 100)) = 10
+        [Toggle] _ShowNormalMap("Show Normal Map", Float) = 0
+
     }
     SubShader
     {
@@ -44,6 +46,7 @@ Shader "Custom/Obsidian"
             sampler2D _NormalMapTex;
             float _DispMapBlend;
             float _DispTexScale;
+            float _ShowNormalMap;
 
             float dispMap(float2 uv)
             {
@@ -61,6 +64,15 @@ Shader "Custom/Obsidian"
 
             half4 frag(v2f i) : SV_Target
             {
+                // Check if we should display normal map visualization
+                if (_ShowNormalMap > 0.5) {
+                    // Sample normal map at scaled UV coordinates
+                    float2 scaledUV = i.uv * _DispTexScale;
+                    float3 normalMap = UnpackNormal(tex2D(_NormalMapTex, scaledUV));
+                    // Convert normal from [-1,1] range to [0,1] for display
+                    return half4(normalMap * 0.5 + 0.5, 1.0);
+                }
+
                 // Normal from dispMap function
                 float procH = dispMap(i.uv);
                 float procdx = dispMap(i.uv + float2(0.5, 0)) - procH;
