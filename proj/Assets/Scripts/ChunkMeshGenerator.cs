@@ -281,8 +281,9 @@ public class ChunkMeshGenerator
         ObsidianMaterial.SetColor("_BaseColor", new Color(0.3f, 0.3f, 0.4f, 1f));
         ObsidianMaterial.SetFloat("_Metallic", 0.5f);
         ObsidianMaterial.SetFloat("_Smoothness", 0.7f);
-        ObsidianMaterial.SetFloat("_DispMapBlend", 0.5f); // 50% blend between procedural and texture
-        ObsidianMaterial.SetFloat("_DispTexScale", 10f);  // Scale the texture sampling
+        ObsidianMaterial.SetFloat("_DispMapBlend", 0.661f); // 66% blend between procedural and texture
+        ObsidianMaterial.SetFloat("_DispTexScale", 1f);  // Scale the texture sampling
+        ObsidianMaterial.SetFloat("_HeightScale", 0.3f);
 
         return ObsidianMaterial;
     }
@@ -291,25 +292,47 @@ public class ChunkMeshGenerator
     {
         Texture2D dispMap = new Texture2D(width, height, TextureFormat.RFloat, false);
 
+        // Seed for variation
+        float seedX = Random.Range(0f, 100f);
+        float seedY = Random.Range(0f, 100f);
+
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 // Use multiple octaves of Perlin noise for more interesting terrain
-                float frequency = 4f;
-                float amplitude = 1f;
+                float frequency = 3.5f;
+                float amplitude = 0.8f;
                 float noiseValue = 0f;
+                float totalAmplitude = 0f;
 
-                for (int octave = 0; octave < 4; octave++)
+                // More octaves for finer detail
+                for (int octave = 0; octave < 6; octave++)
                 {
-                    float sampleX = x / (float)width * frequency;
-                    float sampleY = y / (float)height * frequency;
+                    float sampleX = (x / (float)width * frequency) + seedX;
+                    float sampleY = (y / (float)height * frequency) + seedY;
 
-                    noiseValue += Mathf.PerlinNoise(sampleX, sampleY) * amplitude;
+                    // Add some domain warping for more natural patterns
+                    float warp = Mathf.PerlinNoise(sampleX * 2f, sampleY * 2f) * 0.1f;
+                    sampleX += warp;
+                    sampleY += warp;
 
-                    frequency *= 2f;
-                    amplitude *= 0.5f;
+                    float perlin = Mathf.PerlinNoise(sampleX, sampleY);
+
+                    // Add some ridged noise patterns by modifying the Perlin output
+                    if (octave % 2 == 1)
+                        perlin = 1f - Mathf.Abs((perlin * 2f) - 1f); // Ridged noise
+
+                    noiseValue += perlin * amplitude;
+                    totalAmplitude += amplitude;
+
+                    frequency *= 2.1f;
+                    amplitude *= 0.45f;
                 }
+
+                // Normalize and add a subtle bias toward darker values
+                noiseValue = noiseValue / totalAmplitude;
+                noiseValue = Mathf.Pow(noiseValue, 1.2f);
 
                 dispMap.SetPixel(x, y, new Color(noiseValue, noiseValue, noiseValue, 1f));
             }
@@ -325,23 +348,37 @@ public class ChunkMeshGenerator
         int height = dispMap.height;
         Texture2D normalMap = new Texture2D(width, height, TextureFormat.RGB24, false);
 
+        float normalStrength = 2.5f;
+
         for (int y = 1; y < height - 1; y++)
         {
             for (int x = 1; x < width - 1; x++)
             {
-                // Calculate finite differences for normal generation
-                float left = dispMap.GetPixel(x - 1, y).r;
-                float right = dispMap.GetPixel(x + 1, y).r;
-                float top = dispMap.GetPixel(x, y - 1).r;
-                float bottom = dispMap.GetPixel(x, y + 1).r;
+                // Use wrapping for seamless textures
+                int xPrev = (x - 1 + width) % width;
+                int xNext = (x + 1) % width;
+                int yPrev = (y - 1 + height) % height;
+                int yNext = (y + 1) % height;
 
-                Vector3 normal = new Vector3(left - right, bottom - top, 2f).normalized;
+                // Calculate finite differences for normal generation
+                float heightLeft = dispMap.GetPixel(xPrev, y).r;
+                float heightRight = dispMap.GetPixel(xNext, y).r;
+                float heightUp = dispMap.GetPixel(x, yPrev).r;
+                float heightDown = dispMap.GetPixel(x, yNext).r;
+
+                // Calculate slopes with adjustable strength
+                float dX = (heightLeft - heightRight) * normalStrength;
+                float dY = (heightUp - heightDown) * normalStrength;
+
+                // Create normal vector - the Z component affects how pronounced the normal is
+                Vector3 normal = new Vector3(dX, dY, 1.0f).normalized;
 
                 // Convert normal from [-1, 1] to [0, 1] color range
                 Color normalColor = new Color(
-                    (normal.x + 1f) * 0.5f,
-                    (normal.y + 1f) * 0.5f,
-                    (normal.z + 1f) * 0.5f
+                    normal.x * 0.5f + 0.5f,
+                    normal.y * 0.5f + 0.5f,
+                    normal.z * 0.5f + 0.5f,
+                    1.0f
                 );
 
                 normalMap.SetPixel(x, y, normalColor);

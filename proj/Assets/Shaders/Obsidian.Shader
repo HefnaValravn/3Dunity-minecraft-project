@@ -9,7 +9,7 @@ Shader "Custom/Obsidian"
         _MainTex("Texture", 2D) = "white" {}
 
         [NoScaleOffset] _NormalMapTex("Normal Map Texture", 2D) = "bump" {}
-        _DispMapBlend("Displacement Map Blend", Range(0, 1)) = 0.5
+        _DispMapBlend("Displacement Map Blend", Range(0, 1)) = 0.661
         _DispTexScale("Displacement Texture Scale", Range(1, 100)) = 10
         [Toggle] _ShowNormalMap("Show Normal Map", Float) = 0
 
