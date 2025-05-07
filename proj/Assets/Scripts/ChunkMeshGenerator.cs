@@ -25,12 +25,24 @@ public class ChunkMeshGenerator
 
     private void InitializeMaterials()
     {
-        bedrockMaterial = new Material(Shader.Find("Unlit/Texture"));
-        stoneMaterial = new Material(Shader.Find("Unlit/Texture"));
-        dirtMaterial = new Material(Shader.Find("Unlit/Texture"));
-        grassSideMaterial = new Material(Shader.Find("Unlit/Texture"));
-        grassTopMaterial = new Material(Shader.Find("Unlit/Texture"));
+        bedrockMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        stoneMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        dirtMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        grassSideMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        grassTopMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
         obsidianMaterial = CreateObsidianMaterial();
+
+        bedrockMaterial.SetFloat("_Smoothness", 0.1f);
+        stoneMaterial.SetFloat("_Smoothness", 0.1f);
+        dirtMaterial.SetFloat("_Smoothness", 0.0f);
+        grassSideMaterial.SetFloat("_Smoothness", 0.1f);
+        grassTopMaterial.SetFloat("_Smoothness", 0.1f);
+
+        bedrockMaterial.SetFloat("_Metallic", 0.0f);
+        stoneMaterial.SetFloat("_Metallic", 0.0f);
+        dirtMaterial.SetFloat("_Metallic", 0.0f);
+        grassSideMaterial.SetFloat("_Metallic", 0.0f);
+        grassTopMaterial.SetFloat("_Metallic", 0.0f);
 
         Texture2D bedrockTexture = Resources.Load<Texture2D>("proper_bedrock");
         Texture2D stoneTexture = Resources.Load<Texture2D>("proper_stone");
