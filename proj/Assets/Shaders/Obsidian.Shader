@@ -9,7 +9,6 @@ Shader "Custom/Obsidian"
         _MainTex("Texture", 2D) = "white" {}
 
         [NoScaleOffset] _NormalMapTex("Normal Map Texture", 2D) = "bump" {}
-        _DispMapBlend("Displacement Map Blend", Range(0, 1)) = 0.661
         _DispTexScale("Displacement Texture Scale", Range(1, 100)) = 10
         [Toggle] _ShowNormalMap("Show Normal Map", Float) = 0
 
@@ -29,6 +28,7 @@ Shader "Custom/Obsidian"
             {
                 float4 vertex : POSITION;
                 float2 uv : TEXCOORD0;
+                float3 normal: NORMAL;
             };
 
             struct v2f
@@ -36,6 +36,7 @@ Shader "Custom/Obsidian"
                 float4 pos : SV_POSITION;
                 float2 uv : TEXCOORD0;
                 float3 worldPos : TEXCOORD1;
+                float3 worldNormal : TEXCOORD2;
             };
 
             float _HeightScale;
@@ -48,10 +49,6 @@ Shader "Custom/Obsidian"
             float _DispTexScale;
             float _ShowNormalMap;
 
-            float dispMap(float2 uv)
-            {
-                return sin(uv.x * 100) * cos(uv.y * 100) * _HeightScale;
-            }
 
             v2f vert(appdata_t v)
             {
@@ -59,6 +56,7 @@ Shader "Custom/Obsidian"
                 o.pos = UnityObjectToClipPos(v.vertex);
                 o.uv = v.uv;
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
+                o.worldNormal = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
                 return o;
             }
 
@@ -73,20 +71,12 @@ Shader "Custom/Obsidian"
                     return half4(normalMap * 0.5 + 0.5, 1.0);
                 }
 
-                // Normal from dispMap function
-                float procH = dispMap(i.uv);
-                float procdx = dispMap(i.uv + float2(0.5, 0)) - procH;
-                float procdy = dispMap(i.uv + float2(0, 0.5)) - procH;
-                float3 procnormal = normalize(float3(- procdx, - procdy, 1.0));
-
                 //normal from ChunkMeshGenerator
                 float2 scaledUV = i.uv * _DispTexScale;
                 float3 texNormal = UnpackNormal(tex2D(_NormalMapTex, scaledUV));
 
-                //blend the two normals
-                float3 normal = normalize(lerp(procnormal, texNormal, _DispMapBlend));
 
-                float3 worldNormal = normalize(mul((float3x3)unity_ObjectToWorld, normal));
+                float3 worldNormal = normalize(mul((float3x3)unity_ObjectToWorld, texNormal));
                 float3 lightDir = normalize(_WorldSpaceLightPos0.xyz);
                 float3 viewDir = normalize(_WorldSpaceCameraPos - i.worldPos);
                 float3 halfDir = normalize(lightDir + viewDir);
@@ -103,9 +93,9 @@ Shader "Custom/Obsidian"
                 //half vector between light and view directions instead of the reflection vector
                 float NdotH = max(0, dot(worldNormal, halfDir));
                 //shininess / smoothness controlled by specPower
-                float specPower = _Smoothness * 128.0;
+                float specPower = _Smoothness * 32.0;
                 //sharpness of highlight (first part) multiplied by second part for flexibility
-                half3 specular = pow(NdotH, specPower) * _Color.rgb * _Metallic;
+                half3 specular = pow(NdotH, specPower) * _Color.rgb * _Metallic * 5.0;
 
                 // Ambient lighting
                 half3 ambient = 0.4 * baseColor;
