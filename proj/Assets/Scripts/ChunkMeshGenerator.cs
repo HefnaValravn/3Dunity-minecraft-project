@@ -296,6 +296,7 @@ public class ChunkMeshGenerator
         ObsidianMaterial.SetFloat("_DispMapBlend", 0.661f); // 66% blend between procedural and texture
         ObsidianMaterial.SetFloat("_DispTexScale", 0.7f);  // Scale the texture sampling
         ObsidianMaterial.SetFloat("_HeightScale", 0.3f);
+        ObsidianMaterial.EnableKeyword("_NORMALMAP");
 
         return ObsidianMaterial;
     }
@@ -362,9 +363,9 @@ public class ChunkMeshGenerator
 
         float normalStrength = 2.5f;
 
-        for (int y = 1; y < height - 1; y++)
+        for (int y = 1; y < height; y++)
         {
-            for (int x = 1; x < width - 1; x++)
+            for (int x = 1; x < width; x++)
             {
                 // Use wrapping for seamless textures
                 int xPrev = (x - 1 + width) % width;
