@@ -363,9 +363,9 @@ public class ChunkMeshGenerator
 
         float normalStrength = 2.5f;
 
-        for (int y = 1; y < height; y++)
+        for (int y = 0; y < height; y++)
         {
-            for (int x = 1; x < width; x++)
+            for (int x = 0; x < width; x++)
             {
                 // Use wrapping for seamless textures
                 int xPrev = (x - 1 + width) % width;
