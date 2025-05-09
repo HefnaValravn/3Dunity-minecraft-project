@@ -8,7 +8,7 @@ Shader "Custom/Obsidian"
         _Metallic("Metallic", Range(0, 1)) = 0.9
         _MainTex("Texture", 2D) = "white" {}
 
-        [NoScaleOffset] _NormalMapTex("Normal Map Texture", 2D) = "bump" {}
+        [NoScaleOffset] _BumpMap("Normal Map Texture", 2D) = "bump" {}
         _DispTexScale("Displacement Texture Scale", Range(1, 100)) = 10
         [Toggle] _ShowNormalMap("Show Normal Map", Float) = 0
 
@@ -52,7 +52,7 @@ Shader "Custom/Obsidian"
             float _Metallic;
             fixed4 _Color;
             sampler2D _MainTex;
-            sampler2D _NormalMapTex;
+            sampler2D _BumpMap;
             float _DispMapBlend;
             float _DispTexScale;
             float _ShowNormalMap;
@@ -83,7 +83,7 @@ Shader "Custom/Obsidian"
                 if (_ShowNormalMap > 0.5) {
                     // Sample normal map at scaled UV coordinates
                     float2 scaledUV = i.uv * _DispTexScale;
-                    float3 normalMap = UnpackNormal(tex2D(_NormalMapTex, scaledUV));
+                    float3 normalMap = UnpackNormal(tex2D(_BumpMap, scaledUV));
                     // Convert normal from [ - 1, 1] range to [0, 1] for display
                     return half4(normalMap * 0.5 + 0.5, 1.0);
                 }
@@ -93,7 +93,7 @@ Shader "Custom/Obsidian"
 
                 //normal from ChunkMeshGenerator
                 float2 scaledUV = i.uv * _DispTexScale;
-                float3 texNormal = UnpackNormal(tex2D(_NormalMapTex, scaledUV));
+                float3 texNormal = UnpackNormal(tex2D(_BumpMap, scaledUV));
 
                 float3 worldNormal = normalize(
                 texNormal.x * i.worldTangent +

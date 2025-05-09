@@ -289,7 +289,7 @@ public class ChunkMeshGenerator
         Texture2D dispMap = GenerateProceduraldispMap(128, 128);
         Texture2D normalMap = CalculateNormalsFromdispMap(dispMap);
 
-        ObsidianMaterial.SetTexture("_NormalMapTex", normalMap);
+        ObsidianMaterial.SetTexture("_BumpMap", normalMap);
         ObsidianMaterial.SetColor("_Color", new Color(0.3f, 0.3f, 0.4f, 1f));
         ObsidianMaterial.SetFloat("_Metallic", 0.9f);
         ObsidianMaterial.SetFloat("_Smoothness", 0.9f);
@@ -368,10 +368,11 @@ public class ChunkMeshGenerator
             for (int x = 1; x < width; x++)
             {
                 // Use wrapping for seamless textures
-                int xPrev = Mathf.Clamp(x - 1, 0, width - 1);
-                int xNext = Mathf.Clamp(x + 1, 0, width - 1);
-                int yPrev = Mathf.Clamp(y - 1, 0, height - 1);
-                int yNext = Mathf.Clamp(y + 1, 0, height - 1);
+                int xPrev = (x - 1 + width) % width;
+                int xNext = (x + 1) % width;
+                int yPrev = (y - 1 + height) % height;
+                int yNext = (y + 1) % height;
+
 
                 // Calculate finite differences for normal generation
                 float heightLeft = dispMap.GetPixel(xPrev, y).r;
