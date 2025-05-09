@@ -90,6 +90,8 @@ public class Chunk : MonoBehaviour
         meshGenerator = new ChunkMeshGenerator(blocks, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
         Material[] materials;
         mesh = meshGenerator.GenerateMesh(out materials);
+
+        mesh.RecalculateTangents();
         
         // Assign mesh and materials
         meshFilter.mesh = mesh;

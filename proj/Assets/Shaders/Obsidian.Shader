@@ -12,6 +12,10 @@ Shader "Custom/Obsidian"
         _DispTexScale("Displacement Texture Scale", Range(1, 100)) = 10
         [Toggle] _ShowNormalMap("Show Normal Map", Float) = 0
 
+        _AmbientIntensity("Ambient Intensity", Range(0, 1)) = 0.4
+        _EmissiveIntensity("Emissive Intensity", Range(0, 1)) = 0.1
+        [Toggle] _UseShadows("Use Shadows", Float) = 1
+
     }
     SubShader
     {
@@ -52,6 +56,9 @@ Shader "Custom/Obsidian"
             float _DispMapBlend;
             float _DispTexScale;
             float _ShowNormalMap;
+            float _AmbientIntensity;
+            float _EmissiveIntensity;
+            float _UseShadows;
 
 
             v2f vert(appdata_t v)
@@ -62,7 +69,7 @@ Shader "Custom/Obsidian"
                 o.worldPos = mul(unity_ObjectToWorld, v.vertex).xyz;
                 float3 worldNormal = normalize(mul((float3x3)unity_ObjectToWorld, v.normal));
                 float3 worldTangent = normalize(mul((float3x3)unity_ObjectToWorld, v.tangent.xyz));
-                float3 worldBinormal = cross(worldNormal, worldTangent) * v.tangent.w;
+                float3 worldBinormal = normalize(cross(worldNormal, worldTangent) * v.tangent.w);
 
                 o.worldNormal = worldNormal;
                 o.worldTangent = worldTangent;
@@ -87,14 +94,17 @@ Shader "Custom/Obsidian"
                 //normal from ChunkMeshGenerator
                 float2 scaledUV = i.uv * _DispTexScale;
                 float3 texNormal = UnpackNormal(tex2D(_NormalMapTex, scaledUV));
-                float3x3 TBN = float3x3(i.worldTangent, i.worldBinormal, i.worldNormal);
 
+                float3 worldNormal = normalize(
+                texNormal.x * i.worldTangent +
+                texNormal.y * i.worldBinormal +
+                texNormal.z * i.worldNormal
+                );
 
-                float3 worldNormal = normalize(mul(TBN, texNormal));
                 float3 lightDir;
                 if (_WorldSpaceLightPos0.w == 0.0) {
                     // Directional light
-                    lightDir = normalize(- _WorldSpaceLightPos0.xyz);
+                    lightDir = normalize(_WorldSpaceLightPos0.xyz);
                 } else {
                     // Point light
                     lightDir = normalize(_WorldSpaceLightPos0.xyz - i.worldPos);
@@ -109,24 +119,30 @@ Shader "Custom/Obsidian"
 
                 // Diffuse term (Lambert)
                 float NdotL = max(0, dot(worldNormal, lightDir));
-                half3 diffuse = max(0, NdotL * baseColor);
+
+                //shadows
+                float shadowTerm = _UseShadows > 0.5 ? max(0, NdotL) : 1.0;
+
+                half3 diffuse = shadowTerm * baseColor;
 
                 // Specular term (Blinn - Phong)
                 //half vector between light and view directions instead of the reflection vector
                 float NdotH = max(0, dot(worldNormal, halfDir));
                 //shininess / smoothness controlled by specPower
-                float specPower = _Smoothness * 16.0;
+                float specPower = _Smoothness * 8.0;
                 //sharpness of highlight (first part) multiplied by second part for flexibility
-                half3 specular = (NdotL > 0) ? pow(NdotH, specPower) * _Color.rgb * _Metallic * 5.0 : 0.0;
+                half3 specular = (NdotL > 0) ? pow(NdotH, specPower) * _Color.rgb * _Metallic * 10.0 : 0.0;
+
+                specular = 2 * pow(NdotH, specPower) * _Color.rgb * _Metallic;
 
                 // Ambient lighting
-                half3 ambient = 0.4 * baseColor;
+                half3 ambient = _AmbientIntensity * baseColor;
 
                 //subtle emissive component for more brightness
-                half3 emissive = baseColor * 0.15;
+                half3 emissive = baseColor * (_EmissiveIntensity * 1.2);
 
                 // Final color
-                half3 finalColor = ambient + diffuse + specular + emissive;
+                half3 finalColor = ambient + diffuse + specular + emissive * 2;
 
                 return half4(finalColor, 1.0);
             }

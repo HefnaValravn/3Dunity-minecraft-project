@@ -292,7 +292,7 @@ public class ChunkMeshGenerator
         ObsidianMaterial.SetTexture("_NormalMapTex", normalMap);
         ObsidianMaterial.SetColor("_Color", new Color(0.3f, 0.3f, 0.4f, 1f));
         ObsidianMaterial.SetFloat("_Metallic", 0.9f);
-        ObsidianMaterial.SetFloat("_Smoothness", 0.7f);
+        ObsidianMaterial.SetFloat("_Smoothness", 0.9f);
         ObsidianMaterial.SetFloat("_DispMapBlend", 0.661f); // 66% blend between procedural and texture
         ObsidianMaterial.SetFloat("_DispTexScale", 0.7f);  // Scale the texture sampling
         ObsidianMaterial.SetFloat("_HeightScale", 0.3f);
