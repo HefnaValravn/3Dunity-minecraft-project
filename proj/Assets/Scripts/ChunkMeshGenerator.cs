@@ -368,10 +368,10 @@ public class ChunkMeshGenerator
             for (int x = 1; x < width; x++)
             {
                 // Use wrapping for seamless textures
-                int xPrev = (x - 1 + width) % width;
-                int xNext = (x + 1) % width;
-                int yPrev = (y - 1 + height) % height;
-                int yNext = (y + 1) % height;
+                int xPrev = Mathf.Clamp(x - 1, 0, width - 1);
+                int xNext = Mathf.Clamp(x + 1, 0, width - 1);
+                int yPrev = Mathf.Clamp(y - 1, 0, height - 1);
+                int yNext = Mathf.Clamp(y + 1, 0, height - 1);
 
                 // Calculate finite differences for normal generation
                 float heightLeft = dispMap.GetPixel(xPrev, y).r;

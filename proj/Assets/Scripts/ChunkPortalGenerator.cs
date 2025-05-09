@@ -15,7 +15,7 @@ public class ChunkPortalGenerator
     private Transform chunkTransform;
     private Vector3 gudposition; // Position for particle effects
 
-    public ChunkPortalGenerator(BlockType[,,] blocks, TerrainGenerator terrainGen, int2 chunkCoord, 
+    public ChunkPortalGenerator(BlockType[,,] blocks, TerrainGenerator terrainGen, int2 chunkCoord,
                                Transform chunkTransform, int sizeX, int sizeY, int sizeZ)
     {
         this.blocks = blocks;
@@ -39,8 +39,14 @@ public class ChunkPortalGenerator
             Debug.Log($"Portal location: X={portalX}, Z={portalZ}");
 
             int portalY = terrainGenerator.GetTerrainHeight(
-                portalLocation.x + chunkCoordinate.x * sizeX, 
-                portalLocation.y + chunkCoordinate.y * sizeZ);
+                portalLocation.x + chunkCoordinate.x * sizeX,
+                portalLocation.y + chunkCoordinate.y * sizeZ) + 1;
+
+            //if the entire chunk is water, just place the portal in the air
+            if (portalY < 62)
+            {
+                portalY += 20;
+            }
 
             // Store portal location
             portalFramePosition = new Vector3(
@@ -48,7 +54,7 @@ public class ChunkPortalGenerator
                 portalY + 2.5f, // Center of the 4x5 frame
                 portalZ + chunkCoordinate.y * sizeZ + 0.5f
             );
-            
+
             gudposition = new Vector3(portalX, portalY, portalZ);
             Debug.Log($"Portal Y position: {portalY}");
 
@@ -81,10 +87,10 @@ public class ChunkPortalGenerator
                     }
                 }
             }
-            
+
             return portalFramePosition;
         }
-        
+
         return Vector3.zero;
     }
 
@@ -206,7 +212,7 @@ public class ChunkPortalGenerator
     private void ConfigureVideoPlayer(GameObject portalPlane)
     {
         MeshRenderer meshRenderer = portalPlane.GetComponent<MeshRenderer>();
-        
+
         // Configure VideoPlayer
         VideoPlayer videoPlayer = portalPlane.AddComponent<VideoPlayer>();
         videoPlayer.playOnAwake = true;
@@ -231,7 +237,7 @@ public class ChunkPortalGenerator
 
         videoPlayer.url = System.IO.Path.Combine(Application.streamingAssetsPath, "Videos", "finalskel.ogv");
         videoPlayer.Prepare();
-        
+
         AudioSource capturedAudioSource = audioSource;
         videoPlayer.prepareCompleted += (vp) =>
         {
@@ -267,120 +273,68 @@ public class ChunkPortalGenerator
     private Vector2 GetPortalLocationInChunk(int2 chunkCoordinate)
     {
         // Get water level
-        int waterLevel = 62; // Default water level
+        int waterLevel = 62;
         ChunkManager chunkManager = Object.FindFirstObjectByType<ChunkManager>();
         if (chunkManager != null)
         {
             waterLevel = chunkManager.waterLevel;
         }
 
-        // Start from 10 blocks below the top to avoid checking empty air space
-        int startY = Mathf.Min(sizeY - 10, sizeY - 1);
+        // Stay away from edges
+        int padding = 5;
 
-        // Add debugging to track progress
-        int candidatesChecked = 0;
-        int flatAreasFound = 0;
-
-        for (int y = startY; y >= 1; y--) // Start at 1 to avoid checking y-1 < 0
+        // Start from high up and work down
+        for (int y = sizeY - 10; y >= waterLevel; y--)
         {
-            if (y + 5 <= waterLevel)
+            // Try 25 random spots at this height
+            for (int attempt = 0; attempt < 25; attempt++)
             {
-                Debug.Log($"Skipping Y level {y} because it's below water level {waterLevel}");
-                continue;
-            }
+                // Pick a random spot (with padding from edges)
+                int x = UnityEngine.Random.Range(padding, sizeX - padding - 3); // 3 blocks wide
+                int z = UnityEngine.Random.Range(padding, sizeZ - padding - 2); // 2 blocks deep
 
-            for (int x = 6; x < sizeX - 7; x++)
-            {
-                for (int z = 6; z < sizeZ - 7; z++)
+                // Check if solid ground below
+                bool isSolid = true;
+                for (int dx = 0; dx < 3; dx++)
                 {
-                    candidatesChecked++;
-
-                    // Skip if this isn't even a grass block
-                    if (blocks[x, y, z] != BlockType.Grass)
-                        continue;
-
-                    bool isFlatGrassPatch = true;
-
-                    // Check 2x4 area for grass blocks
-                    for (int dx = 0; dx < 2 && isFlatGrassPatch; dx++)
+                    for (int dz = 0; dz < 2; dz++)
                     {
-                        for (int dz = 0; dz < 4 && isFlatGrassPatch; dz++)
+                        // Must have solid ground under each block
+                        if (!IsBlockSolid(x + dx, y - 1, z + dz))
                         {
-                            // Ensure all blocks are grass at the same height
-                            if (blocks[x + dx, y, z + dz] != BlockType.Grass)
+                            isSolid = false;
+                            break;
+                        }
+
+                        // And must have air above each block
+                        for (int h = 0; h < 5; h++)
+                        {
+                            if (y + h < sizeY && IsBlockSolid(x + dx, y + h, z + dz))
                             {
-                                isFlatGrassPatch = false;
+                                isSolid = false;
+                                break;
                             }
                         }
                     }
 
-                    // If we found a flat area, check surroundings with additional safeguards
-                    if (isFlatGrassPatch)
-                    {
-                        flatAreasFound++;
-                        bool surroundingsValid = true;
+                    if (!isSolid) break;
+                }
 
-                        // Ensure blocks below are solid
-                        for (int dx = 0; dx < 2 && surroundingsValid; dx++)
-                        {
-                            for (int dz = 0; dz < 4 && surroundingsValid; dz++)
-                            {
-                                if (y > 0 && !IsBlockSolid(x + dx, y - 1, z + dz))
-                                {
-                                    surroundingsValid = false;
-                                }
-                            }
-                        }
-
-                        // Ensure there's space above (no blocks in the way)
-                        if (surroundingsValid)
-                        {
-                            for (int dx = 0; dx < 2 && surroundingsValid; dx++)
-                            {
-                                for (int dz = 0; dz < 4 && surroundingsValid; dz++)
-                                {
-                                    for (int h = 1; h <= 5 && surroundingsValid; h++) // Check 5 blocks high
-                                    {
-                                        if (y + h < sizeY && IsBlockSolid(x + dx, y + h, z + dz))
-                                        {
-                                            surroundingsValid = false;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        // If surroundings are valid, we've found our spot!
-                        if (surroundingsValid)
-                        {
-                            Debug.Log($"Found portal location at ({x},{y},{z}) after checking {candidatesChecked} candidates and {flatAreasFound} flat areas");
-                            gudposition = new Vector3(x, y, z);
-                            return new Vector2(x, z);
-                        }
-                    }
+                // If we found a good spot, use it
+                if (isSolid)
+                {
+                    gudposition = new Vector3(x, y, z);
+                    return new Vector2(x + 1, z + 1); // Center of the portal area
                 }
             }
         }
 
-        Debug.LogWarning($"No suitable portal location found in chunk {chunkCoordinate.x},{chunkCoordinate.y} after checking {candidatesChecked} candidates and {flatAreasFound} flat areas");
-
-        // As a fallback, place portal at center of chunk if possible
-        int centerX = sizeX / 2;
-        int centerZ = sizeZ / 2;
-
-        // Try to find suitable Y for center placement
-        for (int y = startY; y >= 1; y--)
-        {
-            if (blocks[centerX, y, centerZ] == BlockType.Grass && y > waterLevel)
-            {
-                Debug.Log($"Using fallback portal location at center: ({centerX},{y},{centerZ})");
-                return new Vector2(centerX, centerZ);
-            }
-        }
-
-        // If all else fails, return center anyway
+        // If we can't find a good spot, just use the center of the chunk
+        Debug.LogWarning("Couldn't find a good portal spot, using center of chunk");
         return new Vector2(sizeX / 2, sizeZ / 2);
     }
+
+
 
     private bool IsBlockSolid(int x, int y, int z)
     {
