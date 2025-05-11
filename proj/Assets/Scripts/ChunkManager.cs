@@ -37,6 +37,7 @@ public class ChunkManager : MonoBehaviour
     private Queue<int2> chunkGenerationQueue = new Queue<int2>();
     private bool isGeneratingChunks = false;
     private System.Collections.IEnumerator currentGenerationRoutine;
+    public bool useOcclusionCulling = true;
 
 
     [Header("Dynamic View Distance")]
@@ -287,14 +288,39 @@ public class ChunkManager : MonoBehaviour
 
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {
-        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(activeCamera);
-        Bounds chunkBounds = new Bounds(new Vector3(chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X / 2,
-                      Chunk.CHUNK_SIZE_Y / 2,
-                      chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z / 2),
-            new Vector3(Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Y, Chunk.CHUNK_SIZE_Z)
+        // First, do a distance check (very fast)
+        Vector3 chunkCenter = new Vector3(
+            chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X / 2,
+            Chunk.CHUNK_SIZE_Y / 2,
+            chunkZ * Chunk.CHUNK_SIZE_Z + Chunk.CHUNK_SIZE_Z / 2
         );
 
-        return GeometryUtility.TestPlanesAABB(planes, chunkBounds);
+        float distanceSqr = (chunkCenter - player.position).sqrMagnitude;
+        float maxViewDistSqr = viewDistance * viewDistance * chunkSize * chunkSize;
+
+        if (distanceSqr > maxViewDistSqr)
+            return false;
+
+        // Next, check frustum planes (a bit more expensive)
+        Bounds chunkBounds = new Bounds(chunkCenter,
+            new Vector3(Chunk.CHUNK_SIZE_X, Chunk.CHUNK_SIZE_Y, Chunk.CHUNK_SIZE_Z));
+
+        Plane[] planes = GeometryUtility.CalculateFrustumPlanes(activeCamera);
+        if (!GeometryUtility.TestPlanesAABB(planes, chunkBounds))
+            return false;
+
+        // Finally, check occlusion if enabled (most expensive)
+        if (useOcclusionCulling && distanceSqr > chunkSize * chunkSize * 3)
+        {
+            Vector3 dirToChunk = (chunkCenter - player.position).normalized;
+            if (Physics.Raycast(player.position, dirToChunk, out RaycastHit hit, Mathf.Sqrt(distanceSqr) - chunkSize))
+            {
+                // Something is blocking the view to this chunk
+                return false;
+            }
+        }
+
+        return true;
     }
 
 
@@ -360,27 +386,27 @@ public class ChunkManager : MonoBehaviour
     private HashSet<int2> GetRequiredChunks(int2 playerChunk)
     {
         HashSet<int2> requiredChunks = new HashSet<int2>();
-    
-    // Calculate the squared view distance for faster distance calculations
-    // Using squared distance avoids costly square root operations
-    float viewDistanceSquared = viewDistance * viewDistance;
-    
-    // Check all chunks in a square boundary and filter by circular distance
-    for (int x = -viewDistance; x <= viewDistance; x++)
-    {
-        for (int z = -viewDistance; z <= viewDistance; z++)
+
+        // Calculate the squared view distance for faster distance calculations
+        // Using squared distance avoids costly square root operations
+        float viewDistanceSquared = viewDistance * viewDistance;
+
+        // Check all chunks in a square boundary and filter by circular distance
+        for (int x = -viewDistance; x <= viewDistance; x++)
         {
-            // Calculate squared distance from player's chunk
-            float distanceSquared = x * x + z * z;
-            
-            // Only include chunks within the circular boundary
-            if (distanceSquared <= viewDistanceSquared)
+            for (int z = -viewDistance; z <= viewDistance; z++)
             {
-                requiredChunks.Add(new int2(playerChunk.x + x, playerChunk.y + z));
+                // Calculate squared distance from player's chunk
+                float distanceSquared = x * x + z * z;
+
+                // Only include chunks within the circular boundary
+                if (distanceSquared <= viewDistanceSquared)
+                {
+                    requiredChunks.Add(new int2(playerChunk.x + x, playerChunk.y + z));
+                }
             }
         }
-    }
-    
-    return requiredChunks;
+
+        return requiredChunks;
     }
 }

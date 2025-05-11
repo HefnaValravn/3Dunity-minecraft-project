@@ -6,12 +6,16 @@ public class ChunkMeshGenerator
     private BlockType[,,] blocks;
     private int sizeX, sizeY, sizeZ;
 
-    private Material bedrockMaterial;
-    private Material stoneMaterial;
-    private Material dirtMaterial;
-    private Material grassSideMaterial;
-    private Material grassTopMaterial;
-    private Material obsidianMaterial;
+    private static Material bedrockMaterial;
+    private static Material stoneMaterial;
+    private static Material dirtMaterial;
+    private static Material grassSideMaterial;
+    private static Material grassTopMaterial;
+    private static Material obsidianMaterial;
+    private static bool materialsInitialized = false;
+
+    public static Texture2D dispMap;
+    public static Texture2D normalMap;
 
     public ChunkMeshGenerator(BlockType[,,] blocks, int sizeX, int sizeY, int sizeZ)
     {
@@ -20,7 +24,11 @@ public class ChunkMeshGenerator
         this.sizeY = sizeY;
         this.sizeZ = sizeZ;
 
-        InitializeMaterials();
+        if (!materialsInitialized)
+        {
+            InitializeMaterials();
+            materialsInitialized = true;
+        }
     }
 
     private void InitializeMaterials()
@@ -285,9 +293,13 @@ public class ChunkMeshGenerator
 
         Material ObsidianMaterial = new Material(ObsidianShader);
 
+
+        //only generate dispmap once
+        if (dispMap == null){
         // Generate dispMap for normals
-        Texture2D dispMap = GenerateProceduraldispMap(128, 128);
-        Texture2D normalMap = CalculateNormalsFromdispMap(dispMap);
+        dispMap = GenerateProceduraldispMap(128, 128);
+        normalMap = CalculateNormalsFromdispMap(dispMap);
+        }
 
         ObsidianMaterial.SetTexture("_BumpMap", normalMap);
         ObsidianMaterial.SetColor("_Color", new Color(0.3f, 0.3f, 0.4f, 1f));
