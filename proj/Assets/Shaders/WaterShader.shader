@@ -3,8 +3,8 @@ Shader "Custom/WaterShader"
     Properties
     {
         _MainColor ("Water Color", Color) = (0.2, 0.388, 0.698, 0.4)
-        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.5
-        _Transparency ("Transparency", Range(0, 1)) = 0.5
+        _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.8
+        _Transparency ("Transparency", Range(0, 1)) = 0.3
         _SkyboxTexture ("Skybox Texture", CUBE) = "" {}
         _MainTex ("Water Texture", 2D) = "white" {}
 
@@ -76,7 +76,8 @@ Shader "Custom/WaterShader"
                 // Blend weight based on angle between view and normal
                 float viewDot = saturate(dot(viewDir, normal)); // 0 (grazing) -> 1 (looking straight down)
 
-                float reflectAmount = pow(1.0 - viewDot, 1.0) * _ReflectionStrength;
+                float reflectAmount = pow(1.0 - viewDot, 2.0) * _ReflectionStrength;
+                reflectAmount = saturate(reflectAmount);
                 float refractAmount = 1.0 - reflectAmount;
 
                 fixed4 texColor = tex2D(_MainTex, i.uv) * 5;
@@ -84,7 +85,7 @@ Shader "Custom/WaterShader"
                 refractionColor.rgb *= texColor.rgb;
 
                 // Final blended color
-                fixed4 finalColor = reflectionColor * reflectAmount + refractionColor * refractAmount;
+                fixed4 finalColor = lerp(refractionColor, reflectionColor, reflectAmount * 1.3);
 
                 // Set final alpha (for transparency blending)
                 finalColor.a = refractionColor.a * refractAmount + reflectAmount;
