@@ -310,15 +310,15 @@ public class ChunkManager : MonoBehaviour
             return false;
 
         // Finally, check occlusion if enabled (most expensive)
-        if (useOcclusionCulling && distanceSqr > chunkSize * chunkSize * 3)
-        {
-            Vector3 dirToChunk = (chunkCenter - player.position).normalized;
-            if (Physics.Raycast(player.position, dirToChunk, out RaycastHit hit, Mathf.Sqrt(distanceSqr) - chunkSize))
-            {
-                // Something is blocking the view to this chunk
-                return false;
-            }
-        }
+        // if (useOcclusionCulling && distanceSqr > chunkSize * chunkSize * 3)
+        // {
+        //     Vector3 dirToChunk = (chunkCenter - player.position).normalized;
+        //     if (Physics.Raycast(player.position, dirToChunk, out RaycastHit hit, Mathf.Sqrt(distanceSqr) - chunkSize))
+        //     {
+        //         // Something is blocking the view to this chunk
+        //         return false;
+        //     }
+        // }
 
         return true;
     }
@@ -333,6 +333,7 @@ public class ChunkManager : MonoBehaviour
         {
             chunk = chunkPool.Dequeue(); // Reuse old chunk
             chunk.gameObject.SetActive(true);
+            chunk.ResetChunk();
             chunk.chunkCoordinate = coord;
         }
         else
