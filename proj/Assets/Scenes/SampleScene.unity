@@ -245,6 +245,7 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
+  - component: {fileID: 330585548}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -370,6 +371,20 @@ MonoBehaviour:
     m_MipBias: 0
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
+--- !u!114 &330585548
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecba5065279af40bd84b89e37193e0e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  wallColor: {r: 0.5, g: 0.7, b: 0.9, a: 1}
+  chunkManager: {fileID: 1122317077}
 --- !u!1 &338464417
 GameObject:
   m_ObjectHideFlags: 0
@@ -936,6 +951,7 @@ MonoBehaviour:
   skybox: {fileID: 8900000, guid: 01d3543fe90bef7a0840b9607bbeec73, type: 3}
   chunksPerFrame: 3
   generationDelay: 0.02
+  useOcclusionCulling: 1
   dynamicViewDistance: 1
   minViewDistance: 4
   maxViewDistance: 10
@@ -1044,6 +1060,7 @@ GameObject:
   - component: {fileID: 1463593757}
   - component: {fileID: 1463593756}
   - component: {fileID: 1463593760}
+  - component: {fileID: 1463593761}
   m_Layer: 0
   m_Name: 3rdCameraFront
   m_TagString: Untagged
@@ -1187,6 +1204,20 @@ MonoBehaviour:
   ySpeed: 120
   yMinLimit: -20
   yMaxLimit: 80
+--- !u!114 &1463593761
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1463593755}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ecba5065279af40bd84b89e37193e0e6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  wallColor: {r: 0.5, g: 0.7, b: 0.9, a: 1}
+  chunkManager: {fileID: 1122317077}
 --- !u!1 &1464379399
 GameObject:
   m_ObjectHideFlags: 0

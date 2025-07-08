@@ -94,7 +94,6 @@ public class WaterGenerator : MonoBehaviour
             if (waterMatInstance.HasProperty("_SkyboxTexture"))
             {
                 waterMatInstance.SetTexture("_SkyboxTexture", properSkybox);
-                Debug.Log("Custom skybox assigned to water material: " + properSkybox.name);
             }
             else
             {
