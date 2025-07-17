@@ -50,9 +50,9 @@ public class Chunk : MonoBehaviour
         blocks = new BlockType[CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z];
 
         // Initialize helpers
-        terrainGenerator_ = new ChunkTerrain(blocks, terrainGenerator, chunkCoordinate,
+        terrainGenerator_ = new ChunkTerrain(blocks, terrainGenerator, chunkCoordinate, 
                                           CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
-
+        
         // Generate terrain blocks
         terrainGenerator_.GenerateTerrainBlocks();
         terrainGenerator_.GenerateCaves();
@@ -62,7 +62,7 @@ public class Chunk : MonoBehaviour
         terrainGenerator_.ConvertGrassToRiverbed(waterLevel);
 
         // Generate portal
-        portalGenerator = new ChunkPortalGenerator(blocks, terrainGenerator, chunkCoordinate,
+        portalGenerator = new ChunkPortalGenerator(blocks, terrainGenerator, chunkCoordinate, 
                                                  transform, CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z);
         portalGenerator.GeneratePortal();
         portalGenerator.GeneratePortalPlane();
@@ -92,33 +92,10 @@ public class Chunk : MonoBehaviour
         mesh = meshGenerator.GenerateMesh(out materials);
 
         mesh.RecalculateTangents();
-
+        
         // Assign mesh and materials
         meshFilter.mesh = mesh;
         meshRenderer.materials = materials;
-    }
-
-
-    public void ResetChunk()
-    {
-        // Don't deallocate, just reset the blocks
-        if (blocks == null)
-        {
-            blocks = new BlockType[CHUNK_SIZE_X, CHUNK_SIZE_Y, CHUNK_SIZE_Z];
-        }
-        else
-        {
-            // Just reset existing blocks to Air
-            System.Array.Clear(blocks, 0, blocks.Length);
-        }
-
-        // Clear mesh without destroying it
-        if (meshFilter != null && meshFilter.sharedMesh != null)
-        {
-            meshFilter.sharedMesh.Clear();
-        }
-
-        isInitialized = false;
     }
 
     public void SetPosition()
