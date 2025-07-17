@@ -46,8 +46,23 @@ public class ChunkManager : MonoBehaviour
     public int maxViewDistance = 10;
     public float targetFrameRate = 60.0f;
     private float frameRateCheckTimer = 0f;
-    private float frameRateCheckInterval = 1.0f;
+    private float frameRateCheckInterval = 2.0f; // Increased interval for more stability
     private float currentFrameRate = 0f;
+    private Queue<float> frameRateHistory = new Queue<float>(); // Track frame rate history
+    private int frameRateHistorySize = 5; // Number of samples to average
+    private float lastViewDistanceChangeTime = 0f;
+    private float viewDistanceChangeCooldown = 5.0f; // Minimum time between changes
+    private int activeChunkCount = 0;
+    private float renderingLoad = 0f;
+    
+    // New variables for better performance tracking
+    private Vector3 lastPlayerPosition;
+    private float playerMovementSpeed = 0f;
+    private Queue<float> movementSpeedHistory = new Queue<float>();
+    private int chunksGeneratedThisFrame = 0;
+    private Queue<int> chunkGenerationHistory = new Queue<int>();
+    private float timeSinceLastChunkGeneration = 0f;
+    private bool hasActiveWorkload = false;
 
 
 
@@ -63,6 +78,7 @@ public class ChunkManager : MonoBehaviour
 
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
+        lastPlayerPosition = player.position;
         UpdateActiveCamera();
         UpdateChunks();
     }
@@ -70,6 +86,22 @@ public class ChunkManager : MonoBehaviour
     void Update()
     {
         UpdateActiveCamera();
+        
+        // Track player movement
+        float distanceMoved = Vector3.Distance(player.position, lastPlayerPosition);
+        playerMovementSpeed = distanceMoved / Time.deltaTime;
+        lastPlayerPosition = player.position;
+        
+        // Track movement speed history
+        movementSpeedHistory.Enqueue(playerMovementSpeed);
+        if (movementSpeedHistory.Count > frameRateHistorySize)
+        {
+            movementSpeedHistory.Dequeue();
+        }
+        
+        // Track chunk generation activity
+        timeSinceLastChunkGeneration += Time.deltaTime;
+        
         // Update frame rate calculation
         if (dynamicViewDistance)
         {
@@ -79,20 +111,89 @@ public class ChunkManager : MonoBehaviour
             {
                 frameRateCheckTimer = 0f;
                 currentFrameRate = 1.0f / Time.smoothDeltaTime;
-
-                // Adjust view distance based on frame rate
-                if (currentFrameRate < targetFrameRate * 0.8f && viewDistance > minViewDistance)
+                
+                // Add frame rate to history for averaging
+                frameRateHistory.Enqueue(currentFrameRate);
+                if (frameRateHistory.Count > frameRateHistorySize)
                 {
-                    // Frame rate too low, reduce view distance
-                    viewDistance--;
-                    Debug.Log($"Reduced view distance to {viewDistance} (FPS: {currentFrameRate:F1})");
+                    frameRateHistory.Dequeue();
                 }
-                else if (currentFrameRate > targetFrameRate * 1.2f && viewDistance < maxViewDistance)
+                
+                // Calculate average frame rate
+                float averageFrameRate = 0f;
+                foreach (float fps in frameRateHistory)
                 {
-                    // Frame rate good, try increasing view distance
-                    viewDistance++;
-                    Debug.Log($"Increased view distance to {viewDistance} (FPS: {currentFrameRate:F1})");
+                    averageFrameRate += fps;
                 }
+                averageFrameRate /= frameRateHistory.Count;
+                
+                // Calculate average movement speed
+                float averageMovementSpeed = 0f;
+                if (movementSpeedHistory.Count > 0)
+                {
+                    foreach (float speed in movementSpeedHistory)
+                    {
+                        averageMovementSpeed += speed;
+                    }
+                    averageMovementSpeed /= movementSpeedHistory.Count;
+                }
+                
+                // Calculate average chunks generated per check interval
+                float averageChunksGenerated = 0f;
+                if (chunkGenerationHistory.Count > 0)
+                {
+                    foreach (int chunks in chunkGenerationHistory)
+                    {
+                        averageChunksGenerated += chunks;
+                    }
+                    averageChunksGenerated /= chunkGenerationHistory.Count;
+                }
+                
+                // Determine if we have active workload
+                hasActiveWorkload = isGeneratingChunks || 
+                                   chunkGenerationQueue.Count > 0 || 
+                                   averageMovementSpeed > 1.0f || 
+                                   timeSinceLastChunkGeneration < 3.0f;
+                
+                // Calculate current rendering load based on active chunks and frame rate
+                activeChunkCount = activeChunks.Count;
+                renderingLoad = (activeChunkCount * (targetFrameRate / Mathf.Max(averageFrameRate, 1f))) / 100f;
+                
+                // Only adjust view distance if enough time has passed since last change
+                if (Time.time - lastViewDistanceChangeTime >= viewDistanceChangeCooldown)
+                {
+                    // Only consider reducing view distance if we have poor performance
+                    if (averageFrameRate < targetFrameRate * 0.7f || renderingLoad > 2.0f)
+                    {
+                        if (viewDistance > minViewDistance)
+                        {
+                            viewDistance--;
+                            lastViewDistanceChangeTime = Time.time;
+                            Debug.Log($"Reduced view distance to {viewDistance} (Avg FPS: {averageFrameRate:F1}, Load: {renderingLoad:F2}, Movement: {averageMovementSpeed:F1}, Active: {hasActiveWorkload})");
+                        }
+                    }
+                    // Only increase view distance if we have consistently good performance AND active workload
+                    else if (averageFrameRate > targetFrameRate * 1.3f && 
+                            renderingLoad < 0.6f && 
+                            hasActiveWorkload && 
+                            averageChunksGenerated > 0)
+                    {
+                        if (viewDistance < maxViewDistance)
+                        {
+                            viewDistance++;
+                            lastViewDistanceChangeTime = Time.time;
+                            Debug.Log($"Increased view distance to {viewDistance} (Avg FPS: {averageFrameRate:F1}, Load: {renderingLoad:F2}, Movement: {averageMovementSpeed:F1}, Active: {hasActiveWorkload})");
+                        }
+                    }
+                }
+                
+                // Reset chunk generation counter for next interval
+                chunkGenerationHistory.Enqueue(chunksGeneratedThisFrame);
+                if (chunkGenerationHistory.Count > frameRateHistorySize)
+                {
+                    chunkGenerationHistory.Dequeue();
+                }
+                chunksGeneratedThisFrame = 0;
             }
         }
         UpdateChunks();
@@ -356,6 +457,11 @@ public class ChunkManager : MonoBehaviour
         chunk.InitializeChunk();
         chunk.SetPosition();
         activeChunks[coord] = chunk;
+        
+        // Track chunk generation activity
+        chunksGeneratedThisFrame++;
+        timeSinceLastChunkGeneration = 0f;
+        
         yield return null; // Wait one frame
 
         // Phase 2: Generate mesh
