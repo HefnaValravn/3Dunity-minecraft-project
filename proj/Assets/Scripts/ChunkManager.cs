@@ -35,34 +35,17 @@ public class ChunkManager : MonoBehaviour
     public int chunksPerFrame = 3;
     public float generationDelay = 0.02f;
     private Queue<int2> chunkGenerationQueue = new Queue<int2>();
+    private HashSet<int2> queuedChunks = new HashSet<int2>(); // Track what's already queued
     private bool isGeneratingChunks = false;
     private System.Collections.IEnumerator currentGenerationRoutine;
     public bool useOcclusionCulling = true;
 
 
-    [Header("Dynamic View Distance")]
-    public bool dynamicViewDistance = true;
-    public int minViewDistance = 4;
-    public int maxViewDistance = 10;
-    public float targetFrameRate = 60.0f;
-    private float frameRateCheckTimer = 0f;
-    private float frameRateCheckInterval = 2.0f; // Increased interval for more stability
-    private float currentFrameRate = 0f;
-    private Queue<float> frameRateHistory = new Queue<float>(); // Track frame rate history
-    private int frameRateHistorySize = 5; // Number of samples to average
-    private float lastViewDistanceChangeTime = 0f;
-    private float viewDistanceChangeCooldown = 5.0f; // Minimum time between changes
-    private int activeChunkCount = 0;
-    private float renderingLoad = 0f;
-    
-    // New variables for better performance tracking
-    private Vector3 lastPlayerPosition;
-    private float playerMovementSpeed = 0f;
-    private Queue<float> movementSpeedHistory = new Queue<float>();
-    private int chunksGeneratedThisFrame = 0;
-    private Queue<int> chunkGenerationHistory = new Queue<int>();
-    private float timeSinceLastChunkGeneration = 0f;
-    private bool hasActiveWorkload = false;
+    // Cache frequently accessed values
+    private float viewDistanceSquaredCache;
+    private float maxViewDistSqrCache;
+    private int2 lastPlayerChunkCoord;
+    private bool playerChunkChanged = true;
 
 
 
@@ -78,7 +61,8 @@ public class ChunkManager : MonoBehaviour
 
         // Set chunk size from Chunk constants
         chunkSize = Chunk.CHUNK_SIZE_X;
-        lastPlayerPosition = player.position;
+        lastPlayerChunkCoord = GetChunkCoord(player.position);
+        UpdateCachedValues();
         UpdateActiveCamera();
         UpdateChunks();
     }
@@ -86,116 +70,6 @@ public class ChunkManager : MonoBehaviour
     void Update()
     {
         UpdateActiveCamera();
-        
-        // Track player movement
-        float distanceMoved = Vector3.Distance(player.position, lastPlayerPosition);
-        playerMovementSpeed = distanceMoved / Time.deltaTime;
-        lastPlayerPosition = player.position;
-        
-        // Track movement speed history
-        movementSpeedHistory.Enqueue(playerMovementSpeed);
-        if (movementSpeedHistory.Count > frameRateHistorySize)
-        {
-            movementSpeedHistory.Dequeue();
-        }
-        
-        // Track chunk generation activity
-        timeSinceLastChunkGeneration += Time.deltaTime;
-        
-        // Update frame rate calculation
-        if (dynamicViewDistance)
-        {
-            frameRateCheckTimer += Time.deltaTime;
-
-            if (frameRateCheckTimer >= frameRateCheckInterval)
-            {
-                frameRateCheckTimer = 0f;
-                currentFrameRate = 1.0f / Time.smoothDeltaTime;
-                
-                // Add frame rate to history for averaging
-                frameRateHistory.Enqueue(currentFrameRate);
-                if (frameRateHistory.Count > frameRateHistorySize)
-                {
-                    frameRateHistory.Dequeue();
-                }
-                
-                // Calculate average frame rate
-                float averageFrameRate = 0f;
-                foreach (float fps in frameRateHistory)
-                {
-                    averageFrameRate += fps;
-                }
-                averageFrameRate /= frameRateHistory.Count;
-                
-                // Calculate average movement speed
-                float averageMovementSpeed = 0f;
-                if (movementSpeedHistory.Count > 0)
-                {
-                    foreach (float speed in movementSpeedHistory)
-                    {
-                        averageMovementSpeed += speed;
-                    }
-                    averageMovementSpeed /= movementSpeedHistory.Count;
-                }
-                
-                // Calculate average chunks generated per check interval
-                float averageChunksGenerated = 0f;
-                if (chunkGenerationHistory.Count > 0)
-                {
-                    foreach (int chunks in chunkGenerationHistory)
-                    {
-                        averageChunksGenerated += chunks;
-                    }
-                    averageChunksGenerated /= chunkGenerationHistory.Count;
-                }
-                
-                // Determine if we have active workload
-                hasActiveWorkload = isGeneratingChunks || 
-                                   chunkGenerationQueue.Count > 0 || 
-                                   averageMovementSpeed > 1.0f || 
-                                   timeSinceLastChunkGeneration < 3.0f;
-                
-                // Calculate current rendering load based on active chunks and frame rate
-                activeChunkCount = activeChunks.Count;
-                renderingLoad = (activeChunkCount * (targetFrameRate / Mathf.Max(averageFrameRate, 1f))) / 100f;
-                
-                // Only adjust view distance if enough time has passed since last change
-                if (Time.time - lastViewDistanceChangeTime >= viewDistanceChangeCooldown)
-                {
-                    // Only consider reducing view distance if we have poor performance
-                    if (averageFrameRate < targetFrameRate * 0.7f || renderingLoad > 2.0f)
-                    {
-                        if (viewDistance > minViewDistance)
-                        {
-                            viewDistance--;
-                            lastViewDistanceChangeTime = Time.time;
-                            Debug.Log($"Reduced view distance to {viewDistance} (Avg FPS: {averageFrameRate:F1}, Load: {renderingLoad:F2}, Movement: {averageMovementSpeed:F1}, Active: {hasActiveWorkload})");
-                        }
-                    }
-                    // Only increase view distance if we have consistently good performance AND active workload
-                    else if (averageFrameRate > targetFrameRate * 1.3f && 
-                            renderingLoad < 0.6f && 
-                            hasActiveWorkload && 
-                            averageChunksGenerated > 0)
-                    {
-                        if (viewDistance < maxViewDistance)
-                        {
-                            viewDistance++;
-                            lastViewDistanceChangeTime = Time.time;
-                            Debug.Log($"Increased view distance to {viewDistance} (Avg FPS: {averageFrameRate:F1}, Load: {renderingLoad:F2}, Movement: {averageMovementSpeed:F1}, Active: {hasActiveWorkload})");
-                        }
-                    }
-                }
-                
-                // Reset chunk generation counter for next interval
-                chunkGenerationHistory.Enqueue(chunksGeneratedThisFrame);
-                if (chunkGenerationHistory.Count > frameRateHistorySize)
-                {
-                    chunkGenerationHistory.Dequeue();
-                }
-                chunksGeneratedThisFrame = 0;
-            }
-        }
         UpdateChunks();
     }
 
@@ -251,9 +125,29 @@ public class ChunkManager : MonoBehaviour
         }
     }
 
+    private void UpdateCachedValues()
+    {
+        viewDistanceSquaredCache = viewDistance * viewDistance;
+        maxViewDistSqrCache = viewDistance * viewDistance * chunkSize * chunkSize;
+    }
+
     private void UpdateChunks()
     {
         int2 playerChunkCoord = GetChunkCoord(player.position);
+        
+        // Check if player moved to a different chunk
+        if (!playerChunkCoord.Equals(lastPlayerChunkCoord))
+        {
+            lastPlayerChunkCoord = playerChunkCoord;
+            playerChunkChanged = true;
+        }
+        
+        // Only do expensive chunk calculations if player moved chunks
+        if (!playerChunkChanged && chunkGenerationQueue.Count == 0)
+            return;
+            
+        playerChunkChanged = false;
+
         HashSet<int2> requiredChunks = GetRequiredChunks(playerChunkCoord);
 
         // Find all chunks that need to be loaded
@@ -273,9 +167,10 @@ public class ChunkManager : MonoBehaviour
             // Queue the prioritized chunks
             foreach (int2 coord in prioritizedChunks)
             {
-                if (!chunkGenerationQueue.Contains(coord))
+                if (!queuedChunks.Contains(coord))
                 {
                     chunkGenerationQueue.Enqueue(coord);
+                    queuedChunks.Add(coord);
                 }
             }
         }
@@ -284,9 +179,10 @@ public class ChunkManager : MonoBehaviour
             // Queue all chunks that need to be loaded
             foreach (int2 coord in chunksToLoad)
             {
-                if (!chunkGenerationQueue.Contains(coord))
+                if (!queuedChunks.Contains(coord))
                 {
                     chunkGenerationQueue.Enqueue(coord);
+                    queuedChunks.Add(coord);
                 }
             }
         }
@@ -327,6 +223,7 @@ public class ChunkManager : MonoBehaviour
             for (int i = 0; i < chunksToProcess; i++)
             {
                 int2 coord = chunkGenerationQueue.Dequeue();
+                queuedChunks.Remove(coord); // Remove from tracking set
 
                 // Skip if the chunk has already been created (could happen if player moves back and forth)
                 if (activeChunks.ContainsKey(coord))
@@ -389,7 +286,7 @@ public class ChunkManager : MonoBehaviour
 
     private bool IsChunkVisible(int chunkX, int chunkZ)
     {
-        // First, do a distance check (very fast)
+        // First, do a distance check using cached value (very fast)
         Vector3 chunkCenter = new Vector3(
             chunkX * Chunk.CHUNK_SIZE_X + Chunk.CHUNK_SIZE_X / 2,
             Chunk.CHUNK_SIZE_Y / 2,
@@ -397,9 +294,8 @@ public class ChunkManager : MonoBehaviour
         );
 
         float distanceSqr = (chunkCenter - player.position).sqrMagnitude;
-        float maxViewDistSqr = viewDistance * viewDistance * chunkSize * chunkSize;
 
-        if (distanceSqr > maxViewDistSqr)
+        if (distanceSqr > maxViewDistSqrCache)
             return false;
 
         // Next, check frustum planes (a bit more expensive)
@@ -458,10 +354,6 @@ public class ChunkManager : MonoBehaviour
         chunk.SetPosition();
         activeChunks[coord] = chunk;
         
-        // Track chunk generation activity
-        chunksGeneratedThisFrame++;
-        timeSinceLastChunkGeneration = 0f;
-        
         yield return null; // Wait one frame
 
         // Phase 2: Generate mesh
@@ -493,10 +385,7 @@ public class ChunkManager : MonoBehaviour
     {
         HashSet<int2> requiredChunks = new HashSet<int2>();
 
-        // Calculate the squared view distance for faster distance calculations
-        // Using squared distance avoids costly square root operations
-        float viewDistanceSquared = viewDistance * viewDistance;
-
+        // Use cached squared view distance for faster distance calculations
         // Check all chunks in a square boundary and filter by circular distance
         for (int x = -viewDistance; x <= viewDistance; x++)
         {
@@ -505,8 +394,8 @@ public class ChunkManager : MonoBehaviour
                 // Calculate squared distance from player's chunk
                 float distanceSquared = x * x + z * z;
 
-                // Only include chunks within the circular boundary
-                if (distanceSquared <= viewDistanceSquared)
+                // Only include chunks within the circular boundary using cached value
+                if (distanceSquared <= viewDistanceSquaredCache)
                 {
                     requiredChunks.Add(new int2(playerChunk.x + x, playerChunk.y + z));
                 }
@@ -514,5 +403,14 @@ public class ChunkManager : MonoBehaviour
         }
 
         return requiredChunks;
+    }
+
+    void OnValidate()
+    {
+        // Update cached values when view distance is changed in inspector
+        if (Application.isPlaying)
+        {
+            UpdateCachedValues();
+        }
     }
 }

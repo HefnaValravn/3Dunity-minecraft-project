@@ -383,8 +383,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecba5065279af40bd84b89e37193e0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wallColor: {r: 0.5, g: 0.7, b: 0.9, a: 1}
-  chunkManager: {fileID: 1122317077}
 --- !u!1 &338464417
 GameObject:
   m_ObjectHideFlags: 0
@@ -942,7 +940,7 @@ MonoBehaviour:
   player: {fileID: 1372197568}
   firstPlayerCamera: {fileID: 330585545}
   thirdPlayerCamera: {fileID: 1463593758}
-  viewDistance: 5
+  viewDistance: 4
   prioritizeViewDirection: 1
   terrainGenerator: {fileID: 130113485}
   waterMaterial: {fileID: 2100000, guid: 85943d0ad10a54885812c05a4d8686e8, type: 2}
@@ -952,10 +950,6 @@ MonoBehaviour:
   chunksPerFrame: 3
   generationDelay: 0.02
   useOcclusionCulling: 1
-  dynamicViewDistance: 1
-  minViewDistance: 4
-  maxViewDistance: 10
-  targetFrameRate: 70
 --- !u!4 &1122317078
 Transform:
   m_ObjectHideFlags: 0
@@ -1216,8 +1210,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ecba5065279af40bd84b89e37193e0e6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  wallColor: {r: 0.5, g: 0.7, b: 0.9, a: 1}
-  chunkManager: {fileID: 1122317077}
 --- !u!1 &1464379399
 GameObject:
   m_ObjectHideFlags: 0

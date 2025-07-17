@@ -4,7 +4,7 @@ Shader "Custom/WaterShader"
     {
         _MainColor ("Water Color", Color) = (0.2, 0.388, 0.698, 0.4)
         _ReflectionStrength ("Reflection Strength", Range(0, 1)) = 0.8
-        _Transparency ("Transparency", Range(0, 1)) = 0.3
+        _Transparency ("Transparency", Range(0, 1)) = 0.1
         _SkyboxTexture ("Skybox Texture", CUBE) = "" {}
         _MainTex ("Water Texture", 2D) = "white" {}
 
@@ -78,18 +78,19 @@ Shader "Custom/WaterShader"
 
                 float reflectAmount = pow(1.0 - viewDot, 2.0) * _ReflectionStrength;
                 reflectAmount = saturate(reflectAmount);
+                reflectAmount = max(reflectAmount, 0.2);
                 float refractAmount = 1.0 - reflectAmount;
 
-                fixed4 texColor = tex2D(_MainTex, i.uv) * 5;
+                fixed4 texColor = tex2D(_MainTex, i.uv) * 3;
                 texColor = saturate(texColor);
-                refractionColor.rgb *= texColor.rgb;
+                refractionColor.rgb = lerp(_MainColor.rgb, _MainColor.rgb * texColor.rgb, 0.9);
 
                 // Final blended color
                 fixed4 finalColor = lerp(refractionColor, reflectionColor, reflectAmount * 1.3);
 
+                finalColor.rgb = lerp(finalColor.rgb, finalColor.rgb * texColor.rgb, 0.3); // Overlay texture
                 // Set final alpha (for transparency blending)
                 finalColor.a = refractionColor.a * refractAmount + reflectAmount;
-
                 return finalColor;
             }
             ENDCG
